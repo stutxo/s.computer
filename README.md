@@ -23,12 +23,12 @@ Grab 3 and a wormhole opens. Roll into it and you fly down a tunnel of Cool S's 
 
 | # | s-verse | what you do | by |
 |---|---|---|---|
-| 1 | the notebook | tilt the S, roll into gold s's (home) | [@stutxo](https://github.com/stutxo) |
-| 2 | S Grand Prix | slot-car race through the S, under the middle band and out the other pocket | [@stutxo](https://github.com/stutxo) |
-| 3 | Hole in S | mini golf on an S-shaped green, with a windmill and a duck | [@stutxo](https://github.com/stutxo) |
-| 4 | S-Invaders | defend the S from rows of marching Cool S's | [@stutxo](https://github.com/stutxo) |
+| 1 | [the notebook](https://s.computer/) | tilt the S, roll into gold s's (home) | [@stutxo](https://github.com/stutxo) |
+| 2 | [S Grand Prix](https://s.computer/?verse=race) | slot-car race through the S, under the middle band and out the other pocket | [@stutxo](https://github.com/stutxo) |
+| 3 | [Hole in S](https://s.computer/?verse=golf) | mini golf on an S-shaped green, with a windmill and a duck | [@stutxo](https://github.com/stutxo) |
+| 4 | [S-Invaders](https://s.computer/?verse=invaders) | defend the S from rows of marching Cool S's | [@stutxo](https://github.com/stutxo) |
 
-Jump straight into one with `?verse=`, like [s.computer/?verse=golf](https://s.computer/?verse=golf).
+Tap a name to jump straight into it. Each link is just `?verse=` and the s-verse's id, like `s.computer/?verse=golf`.
 
 ## Make your own s-verse
 
