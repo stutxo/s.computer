@@ -262,7 +262,8 @@ function createNotebook(ctx) {
   resize();
 
   /* ---------- state ---------- */
-  let state = 'intro', stateT = 0, introT = 0, dropThen = 'title', fallReason = 'fly', active = true;
+  // 'title' = the ball has landed and is waiting for the first touch; it says what to do itself (see nudge)
+  let state = 'intro', stateT = 0, introT = 0, dropThen = 'title', fallReason = 'fly', active = true, nudgeAt = 0, nudgeN = 0;
   let ball = makeBall(), game = makeGame(), fall = null, portal = null, portalT = 0, suck = null;
   const tilt = { a: 0, c: 0, va: 0, vc: 0 };
   let boardA = 0, boardC = 0, boardY = PAPER_Y + 0.004, camLift = PAPER_Y;
@@ -337,10 +338,19 @@ function createNotebook(ctx) {
     game = makeGame();
     spawnToken(game, ball);
     showToken();
-    home.showTitle();
+    nudgeAt = 0.5; nudgeN = 0;
+    home.ready();
+  }
+  // until you touch it, the ball tells you what to do, one line at a time, and the gold s asks to be grabbed
+  const NUDGES = [ctx.coarse ? 'drag to tilt!' : 'drag or arrow keys!', 'grab me!', "don't fly out!"];
+  function nudge() {
+    const i = nudgeN++ % NUDGES.length, onToken = i === 1 && game.token;
+    const x = onToken ? game.token.x : ball.x, z = onToken ? game.token.z : ball.z;
+    l2w(boardA, boardC, x, onToken ? 1.25 : 1.05, z, w3);
+    hud.pop(NUDGES[i], w3[0], w3[1] + boardY + bob, w3[2], camera, onToken ? 'gold' : undefined);
   }
   function startPlay() {
-    home.hideTitle();
+    home.started();
     if (!game.token) spawnNext();
     else {
       const tk = game.token;
@@ -615,6 +625,8 @@ function createNotebook(ctx) {
       }
     }
 
+    if (state === 'title' && stateT >= nudgeAt) { nudge(); nudgeAt = stateT + 2.2; }
+
     if (keepT > 0 && (keepT -= dt) <= 0 && state === 'play' && portal && game.token) {
       l2w(boardA, boardC, game.token.x, 1.2, game.token.z, w3);
       hud.pop('or keep going!', w3[0], w3[1] + by, w3[2], camera, 'gold');
@@ -681,7 +693,7 @@ function createNotebook(ctx) {
     // back from another s-verse: drop in and keep going
     begin() {
       if (state === 'intro') settle();
-      home.hideTitle();
+      home.started();
       portal = null; keepT = 0;
       portalRoot.visible = false;
       game.token = null;

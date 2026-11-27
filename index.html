@@ -152,10 +152,9 @@
   }
   .note .big { font-size: 34px; }
   .note .cta {
-    margin-top: 30px;
+    margin-top: 22px;
     text-decoration: underline wavy var(--pink) 2px; text-underline-offset: 7px;
   }
-  .note .small { font-size: 19px; opacity: .8; }
   #over .grade {
     position: absolute; right: 10px; top: 4px; width: 112px; height: 96px;
     transform: rotate(9deg); color: var(--red);
@@ -234,7 +233,6 @@
   /* the quiet "there's more in here" hint: a pencil line on the notes */
   .note .hint { font-size: 19px; color: #6d7382; transform: rotate(-1deg); }
   .note .hint:empty { display: none; }
-  .note .cta { margin-top: 22px; }
 
   /* "4 games": a notebook-paper button under the logo that opens the list */
   #games {
@@ -374,15 +372,6 @@
 <div id="stick"><div id="knob"></div></div>
 <div id="pops"></div>
 
-<section id="title" class="note" aria-live="polite">
-  <div class="tape"></div>
-  <p class="big">tilt the S.</p>
-  <p>grab the gold s's.</p>
-  <p>don't fly out.</p>
-  <p class="hint" id="hint"></p>
-  <p class="cta" id="cta">drag anywhere to start</p>
-  <p class="small" id="keys" hidden>arrow keys work too</p>
-</section>
 
 <section id="over" class="note" aria-live="polite">
   <div class="tape"></div>

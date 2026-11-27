@@ -18,7 +18,7 @@ export const ZERO2 = [0, 0];
 export const HAND = '"Gochi Hand", "Marker Felt", "Chalkboard SE", "Comic Sans MS", cursive';
 
 export const el = {};
-for (const id of ['c', 'score', 'status', 'best', 'title', 'cta', 'keys', 'over', 'grade', 'remark', 'reason', 'tally',
+for (const id of ['c', 'score', 'status', 'best', 'over', 'grade', 'remark', 'reason', 'tally',
   'bestline', 'trip', 'again', 'share', 'stick', 'knob', 'mute', 'pops', 'warp', 'card', 'cardNum', 'cardName', 'cardVerb', 'flash']) el[id] = $(id);
 
 export const store = {
