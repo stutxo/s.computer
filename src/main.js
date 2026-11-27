@@ -302,7 +302,7 @@ function finishVerse(def, result) {
   if (next && Math.random() > Math.min(0.8, 0.15 + 0.22 * (run.stops - 1))) { leaving = false; enterVerse(next, center); } else goHome(center, false);
 }
 
-// the "next game" button: straight down a wormhole to another random s-verse, from wherever you are
+// the "enter wormhole" button: straight down a wormhole to another random s-verse, from wherever you are
 const $next = document.getElementById('next');
 function nextGame() {
   if (!cur || warping || leaving || !away().length) return;

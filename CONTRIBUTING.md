@@ -58,7 +58,7 @@ export default {
 | `update(dt)` | required. Called every frame; `dt` is in seconds. |
 | `start()` | when the title card has gone and the player can see your s-verse. Start the action here, not in `create`. |
 | `resize()` | when the screen changes size. Re-frame your camera. |
-| `onPress(e)`, `onRelease(e)` | a finger or mouse goes down or up anywhere. `e.clientX`, `e.clientY` are in pixels. (The top corners belong to the logo, the score and the "next game" button, so keep your own buttons out of them.) |
+| `onPress(e)`, `onRelease(e)` | a finger or mouse goes down or up anywhere. `e.clientX`, `e.clientY` are in pixels. (The top corners belong to the logo, the score and the "enter wormhole" button, so keep your own buttons out of them.) |
 | `onKey(e, dir, up)` | a key goes down (`up` is false) or up. `dir` is `'l'`, `'r'`, `'u'`, `'d'` for the arrows and WASD; check `e.code` for `'Space'` or `'Enter'`. |
 | `showsStick()`, or `ring: false` | whether to draw the drag circle while the player drags. Turn it off if you draw your own aiming. |
 | `dispose()` | when the player leaves. Stop any `ctx.audio.drone()` you started. The engine frees your scene's GPU memory and stops `ctx.audio.startLoop` music. |
