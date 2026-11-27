@@ -51,6 +51,7 @@ A robot checks the rules, plays every pull request in a real browser, and commen
 - `src/main.js` runs the multiverse: wormholes, trips, score, the s-verse list, game over.
 - `src/wormhole.js` is the tunnel of Cool S's you fly down between s-verses.
 - `s-verses/<id>/index.js` is one s-verse each. `s-verses/manifest.json` lists them in order; the order is their number.
+- `og.jpg` is the picture that shows up when someone shares the link.
 - `tools/check.mjs` and `tools/smoke.mjs` are the robot that checks pull requests. `.github/workflows/` runs them on each one and comments a link to play it.
 
 Hosted on GitHub Pages from the `main` branch root. `CNAME` points it at `s.computer`. Visits are counted with [GoatCounter](https://www.goatcounter.com) on s.computer only: no cookies, nothing personal.
