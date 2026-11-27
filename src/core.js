@@ -28,7 +28,10 @@ export const store = {
 
 /* ---------- renderer ---------- */
 
-export const renderer = new THREE.WebGLRenderer({ canvas: el.c, antialias: true, powerPreference: 'high-performance' });
+export const renderer = (() => {
+  try { return new THREE.WebGLRenderer({ canvas: el.c, antialias: true, powerPreference: 'high-performance' }); }
+  catch (err) { window.__sFallback("this browser can't draw the S.\ntry another one?"); throw err; } // no WebGL
+})();
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setSize(innerWidth, innerHeight, false);
 renderer.shadowMap.enabled = true;
