@@ -52,8 +52,8 @@ function createInvaders(ctx) {
   // a giant neon Cool S on the floor, behind everything
   const BIG = 1.22;
   const tube = new THREE.CylinderGeometry(1, 1, 1, 8, 1, true);
-  const core = new THREE.InstancedMesh(tube, new THREE.MeshBasicMaterial({ color: 0xffb3f0 }), S.STROKES.length);
-  const glow = new THREE.InstancedMesh(tube, new THREE.MeshBasicMaterial({ color: 0xff2fd0, transparent: true, opacity: 0.22, depthWrite: false }), S.STROKES.length);
+  const core = new THREE.InstancedMesh(tube, new THREE.MeshBasicMaterial({ color: 0xffc4f4, toneMapped: false }), S.STROKES.length);
+  const glow = new THREE.InstancedMesh(tube, new THREE.MeshBasicMaterial({ color: 0xff2fd0, transparent: true, opacity: 0.22, depthWrite: false, toneMapped: false }), S.STROKES.length);
   {
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3(), d = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0);
     S.STROKES.forEach((w, i) => {
@@ -68,7 +68,8 @@ function createInvaders(ctx) {
   /* ---------- the invaders ---------- */
   const mini = ctx.miniS(0.095, 0.12, 0.03);
   const geo = mini.geo.rotateX(-Math.PI / 2); // lying flat, its top toward the top of the screen
-  const rowMats = ROW_COLORS.map((c) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.55, roughness: 0.35, metalness: 0.2 }));
+  // toneMapped: false lets the neon go properly bright instead of getting squashed to pastel
+  const rowMats = ROW_COLORS.map((c) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.75, roughness: 0.35, metalness: 0.1, toneMapped: false }));
   const form = { x: 0, z: -5.6, dir: 1, frame: 0 };
   const inv = [];
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
@@ -88,7 +89,7 @@ function createInvaders(ctx) {
       if (S.pointInS(v / BK, u / BK)) cells.push({ x: bx + u, z: BUNKER_Z + v, alive: true });
     }
   }
-  const blocks = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL * 0.92, 0.2, CELL * 0.92), new THREE.MeshStandardMaterial({ color: 0x7dff6b, emissive: 0x2bd12b, emissiveIntensity: 0.45, roughness: 0.6 }), cells.length);
+  const blocks = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL * 0.92, 0.2, CELL * 0.92), new THREE.MeshStandardMaterial({ color: 0x7dff6b, emissive: 0x2bd12b, emissiveIntensity: 0.6, roughness: 0.6, toneMapped: false }), cells.length);
   const m4 = new THREE.Matrix4(), _p = new THREE.Vector3(), _s = new THREE.Vector3(1, 1, 1), _q = new THREE.Quaternion(), ZERO_M = new THREE.Matrix4().makeScale(0, 0, 0);
   cells.forEach((c, k) => blocks.setMatrixAt(k, m4.compose(_p.set(c.x, 0.1, c.z), _q, _s)));
   scene.add(blocks);
@@ -131,7 +132,7 @@ function createInvaders(ctx) {
 
   /* ---------- the mothership: a big gold Cool S with googly eyes ---------- */
   const shipGeo = ctx.miniS(0.16, 0.16, 0.04).geo.rotateX(-Math.PI / 2);
-  const ship = new THREE.Mesh(shipGeo, new THREE.MeshStandardMaterial({ color: 0xffc21a, metalness: 1, roughness: 0.22, emissive: 0x8a5a00, emissiveIntensity: 0.35, envMapIntensity: 1.6 }));
+  const ship = new THREE.Mesh(shipGeo, new THREE.MeshStandardMaterial({ color: 0xffc21a, metalness: 0.6, roughness: 0.25, emissive: 0xffa000, emissiveIntensity: 0.7, envMapIntensity: 1.6, toneMapped: false }));
   ship.visible = false;
   scene.add(ship);
   const shipEyes = ctx.makeGoogly({ radius: 0.34, body: false, faceUp: [0, 0, -1], castShadow: false });
@@ -141,10 +142,10 @@ function createInvaders(ctx) {
 
   /* ---------- projectiles ---------- */
   const shotGeo = new THREE.BoxGeometry(0.07, 0.07, 0.42);
-  const shotMat = new THREE.MeshBasicMaterial({ color: 0xeaffea });
+  const shotMat = new THREE.MeshBasicMaterial({ color: 0xeaffea, toneMapped: false });
   const shots = [0, 1].map(() => { const m = new THREE.Mesh(shotGeo, shotMat); m.visible = false; scene.add(m); return { m, on: false, x: 0, z: 0 }; });
   const bombGeo = ctx.miniS(0.035, 0.04, 0.01).geo.rotateX(-Math.PI / 2);
-  const bombMat = new THREE.MeshBasicMaterial({ color: 0xff4f4f });
+  const bombMat = new THREE.MeshBasicMaterial({ color: 0xff4f4f, toneMapped: false });
   const bombs = [0, 1, 2, 3, 4, 5].map(() => { const m = new THREE.Mesh(bombGeo, bombMat); m.visible = false; scene.add(m); return { m, on: false, x: 0, z: 0, v: 0 }; });
   const fx = ctx.makeParticles(scene, 360, -0.04);
 
