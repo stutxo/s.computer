@@ -177,9 +177,10 @@
   #over .teacher { font-family: var(--teacher); color: var(--red); font-size: 15px; transform: rotate(-1.5deg); }
 
   #fallback {
-    position: fixed; inset: 0; display: grid; place-content: center; gap: 18px;
-    background: var(--paper); text-align: center; padding: 24px; font-size: 24px;
+    position: fixed; inset: 0; z-index: 30; display: grid; place-content: center; justify-items: center; gap: 18px;
+    background: var(--paper); text-align: center; padding: 24px; font-size: 24px; line-height: 1.3;
   }
+  #fallback .why { max-width: 16em; white-space: pre-line; }
   #fallback[hidden] { display: none; }
   #fallback svg { width: min(36vw, 160px); height: auto; margin: 0 auto; }
 
@@ -401,26 +402,19 @@
 <noscript><style>#fallback { display: grid !important; }</style></noscript>
 <div id="fallback" hidden>
   <svg viewBox="-0.3 -0.3 2.6 5.6" aria-hidden="true"><path d="M0 1V2M1 1V2M2 1V2M0 3V4M1 3V4M2 3V4M0 2L1 3M1 2L2 3M2 2L1.5 2.5M0 3L.5 2.5M0 1L1 0L2 1M0 4L1 5L2 4" fill="none" stroke="#2335a8" stroke-width=".16" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  <div class="why">the S needs JavaScript and WebGL to run. try reloading, or open it in another browser.</div>
+  <div class="why">the S needs JavaScript to run.</div>
 </div>
 
 <script>
-  // If the game can't start (no WebGL, CDN blocked, ancient browser), show a plain S instead of a blank page.
+  // Only for when the game really can't run: its code (or three.js) didn't load, this browser can't draw in 3D,
+  // or it failed to start. Never because of a slow connection, a background tab or an ad blocker.
   window.__sFallback = function (msg) {
     var f = document.getElementById('fallback');
-    if (!f) return;
+    if (!f || window.__sReady) return;
     f.hidden = false;
     if (msg) f.querySelector('.why').textContent = msg;
   };
-  // a script that fails to load (three.js CDN unreachable) or an error while starting up: show it right away
-  window.addEventListener('error', function (e) {
-    if (window.__sReady) return;
-    var t = e.target;
-    if (t && t.tagName && t.tagName !== 'SCRIPT') return; // a font or image failing is fine
-    window.__sFallback();
-  }, true);
-  setTimeout(function () { if (!window.__sReady) window.__sFallback(); }, 15000);
 </script>
-<script type="module" src="./src/main.js"></script>
+<script type="module" src="./src/main.js" onerror="window.__sFallback('the S couldn\'t load.\ntry reloading?')"></script>
 </body>
 </html>

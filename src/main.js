@@ -465,7 +465,13 @@ function onResize() {
   if (cur && cur.inst !== home && cur.inst.resize) try { cur.inst.resize(); } catch (err) { onCrash(err); }
 }
 window.addEventListener('resize', onResize);
-el.c.addEventListener('webglcontextlost', (e) => { e.preventDefault(); window.__sFallback('the S lost its graphics context. reload the page to get it back.'); });
+el.c.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault(); // lets the browser hand the picture back
+  const fb = document.getElementById('fallback');
+  fb.querySelector('.why').textContent = 'the S got lost.\nreload to bring it back.';
+  fb.hidden = false;
+});
+el.c.addEventListener('webglcontextrestored', () => { document.getElementById('fallback').hidden = true; });
 
 /* ---------- boot ---------- */
 
@@ -513,7 +519,7 @@ renderer.setAnimationLoop((now) => {
   }
 });
 
-boot().catch((err) => { console.error(err); window.__sFallback(); });
+boot().catch((err) => { console.error(err); window.__sFallback("the S couldn't load.\ntry reloading?"); });
 
 // handy for poking at it from the console (and for the tests)
 window.__s = {
