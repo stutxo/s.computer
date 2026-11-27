@@ -40,3 +40,5 @@ A robot plays every pull request in a real browser and checks the rules before a
 - `tools/check.mjs` and `tools/smoke.mjs` are the robot that checks pull requests.
 
 Hosted on GitHub Pages from the `main` branch root. `CNAME` points it at `s.computer`.
+
+MIT licensed: see [LICENSE](LICENSE). Every s-verse is shared under the same terms.

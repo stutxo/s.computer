@@ -10,7 +10,7 @@ const ID_OK = /^[a-z0-9][a-z0-9-]{0,40}$/;
 const MAX_PER_VISIT = 12;        // one visit to an s-verse can't award more gold s's than this
 
 const run = {
-  score: 0, homeCount: 0, portalAt: 5, trips: 0, loop: Math.max(0, parseInt(params.get('loop') || '0', 10) || 0),
+  score: 0, homeCount: 0, portalFrom: 0, portalAt: 5, trips: 0, loop: Math.max(0, parseInt(params.get('loop') || '0', 10) || 0),
   chain: [], deck: [], visited: [], best: parseInt(store.get('s.best', '0'), 10) || 0,
 };
 let manifest = [];
@@ -26,6 +26,50 @@ function anim(node, frames, opts) {
   Object.assign(node.style, frames[frames.length - 1]);
   return sleep(opts.duration || 0);
 }
+/* ---------- the quiet hints that there's more in here ---------- */
+
+// which s-verses this player has ever been to (kept between visits)
+const found = (() => { try { return new Set(JSON.parse(store.get('s.found', '[]'))); } catch (_) { return new Set(); } })();
+function markFound(id) {
+  if (found.has(id)) return;
+  found.add(id);
+  store.set('s.found', JSON.stringify([...found]));
+}
+function hintLine() {
+  const all = manifest.filter((v) => !v.home && !v.hidden), k = all.filter((v) => found.has(v.id)).length;
+  if (!all.length) return '';
+  if (!k) return "psst. 5 s's opens a wormhole";
+  return k < all.length ? `s-verses found: ${k} of ${all.length}` : `s-verses found: all ${all.length}!`;
+}
+// the meter under the score at home: a dot for each gold s until the next wormhole, then a little spiral
+const $meter = document.getElementById('meter');
+const SPIRAL = (() => {
+  let d = 'M0 0';
+  for (let i = 1; i <= 40; i++) { const t = i / 40, a = t * Math.PI * 5, r = t * 8.5; d += `L${(Math.cos(a) * r).toFixed(2)} ${(Math.sin(a) * r).toFixed(2)}`; }
+  return d;
+})();
+function updateMeter(bump) {
+  const show = !!(cur && cur.def.home && !overShown && manifest.some((v) => !v.home && !v.hidden));
+  $meter.classList.toggle('on', show);
+  if (!show) return;
+  const need = run.portalAt - run.portalFrom, have = clamp(run.homeCount - run.portalFrom, 0, need);
+  if ($meter.querySelectorAll('i').length !== need) {
+    $meter.textContent = '';
+    for (let i = 0; i < need; i++) $meter.appendChild(document.createElement('i'));
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    svg.setAttribute('viewBox', '-10 -10 20 20');
+    path.setAttribute('d', SPIRAL);
+    svg.appendChild(path);
+    $meter.appendChild(svg);
+  }
+  const dots = $meter.querySelectorAll('i');
+  dots.forEach((dot, i) => dot.classList.toggle('on', i < have));
+  if (bump && have > 0) { const dot = dots[have - 1]; dot.classList.remove('bump'); void dot.offsetWidth; dot.classList.add('bump'); }
+  $meter.classList.toggle('open', have >= need);
+  $meter.setAttribute('aria-label', have >= need ? 'a wormhole is open' : `${need - have} more gold s's to the next wormhole`);
+}
+const clamp = S.clamp;
+
 const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const away = () => manifest.filter((v) => !v.home && !v.hidden);
 
@@ -62,13 +106,14 @@ function makeCtx(def) {
   ctx.finish = (result = {}) => finishVerse(def, result);
   if (def.home) {
     ctx.home = {
-      collected() { run.homeCount++; },
+      collected() { run.homeCount++; updateMeter(true); },
       portalReady: () => run.homeCount >= run.portalAt && away().length > 0,
       enterPortal: (x, y) => takePortal(x, y),
       gameOver: (reason) => showOver(reason),
       showTitle() {
         el.cta.textContent = core.coarse ? 'drag anywhere to start' : 'click and drag to start';
         el.keys.hidden = core.coarse;
+        document.getElementById('hint').textContent = hintLine();
         el.title.classList.add('show');
         hud.best(run.best);
       },
@@ -216,6 +261,7 @@ function setCurrent(def, inst, ctx, visit) {
   applyTheme(def);
   hud.status('');
   if (inst.resize) inst.resize();
+  updateMeter();
 }
 
 async function enterVerse(id, from) {
@@ -230,6 +276,7 @@ async function enterVerse(id, from) {
     if (!inst || !inst.scene || !inst.camera || typeof inst.update !== 'function') { cur = null; return; }
     setCurrent(def, inst, ctx, visit);
     run.visited.push(id);
+    markFound(id);
   });
   leaving = false;
   if (!cur) return goHome(from, true);
@@ -260,6 +307,7 @@ function finishVerse(def, result) {
 async function goHome(from, failed) {
   leaving = true;
   run.chain = [];
+  run.portalFrom = run.homeCount;
   run.portalAt = run.homeCount + 3;
   await warp(from, homeDef, failed ? 'kicked back to' : 'back to', () => {
     leaveCurrent();
@@ -297,20 +345,23 @@ function showOver(reason) {
   el.reason.textContent = reason === 'slow' ? 'too slow. the S got bored.' : core.pick(['flew out!', 'yeeted.', 'wheeeee', 'launched!']);
   el.tally.textContent = `you got ${s} ${s === 1 ? 's' : "s's"}`;
   el.trip.textContent = credits();
+  document.getElementById('found').textContent = hintLine();
   el.bestline.textContent = isBest && s > 0 ? 'new best!' : `best: ${run.best}`;
   el.again.textContent = core.coarse ? 'tap to try again' : 'click to try again';
   el.over.classList.add('show');
   hud.best(run.best);
   overShown = true;
   overAt = performance.now();
+  updateMeter();
   if (s >= 20) audio.tada(); else if (s < 7) audio.sad();
 }
 
 function resetRun() {
   overShown = false;
   el.over.classList.remove('show');
-  Object.assign(run, { score: 0, homeCount: 0, portalAt: 5, trips: 0, chain: [], deck: [], visited: [], loop: 0 });
+  Object.assign(run, { score: 0, homeCount: 0, portalFrom: 0, portalAt: 5, trips: 0, chain: [], deck: [], visited: [], loop: 0 });
   hud.score(0);
+  updateMeter();
   home.reset();
 }
 

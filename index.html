@@ -212,6 +212,25 @@
   #card .by { font-size: calc(15px * var(--card-scale, 1)); opacity: .7; margin-top: 12px; }
 
   #over .small-line { font-size: 19px; opacity: .85; }
+  /* the quiet "there's more in here" hint: a pencil line on the notes */
+  .note .hint { font-size: 19px; color: #6d7382; transform: rotate(-1deg); }
+  .note .hint:empty { display: none; }
+  .note .cta { margin-top: 22px; }
+
+  /* the wormhole meter: one dot per gold s until the next wormhole */
+  #meter {
+    position: absolute; left: 50%; top: calc(80px + var(--safe-t)); transform: translateX(-50%);
+    display: none; align-items: center; gap: 6px; opacity: .85;
+  }
+  #meter.on { display: flex; }
+  #meter i { width: 9px; height: 9px; border-radius: 50%; border: 2px solid rgba(35, 53, 168, .42); background: rgba(252, 253, 250, .7); }
+  #meter i.on { background: #ffc21a; border-color: #a86f00; }
+  #meter i.bump { animation: dot-bump .4s cubic-bezier(.2, 1.6, .4, 1); }
+  @keyframes dot-bump { 0% { transform: scale(2); } 100% { transform: scale(1); } }
+  #meter svg { width: 18px; height: 18px; margin-left: 3px; fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; opacity: .55; }
+  #meter.open svg { opacity: 1; animation: meter-spin 1.8s linear infinite; }
+  @keyframes meter-spin { to { transform: rotate(-360deg); } }
+  @media (prefers-reduced-motion: reduce) { #meter.open svg { animation: none; } }
   #make {
     pointer-events: auto; color: var(--ink);
     text-decoration: underline dotted; text-underline-offset: 5px;
@@ -239,6 +258,7 @@
   <div id="score" aria-live="polite"></div>
   <div id="status" aria-live="polite"></div>
   <div id="best"></div>
+  <div id="meter" role="img" aria-label=""></div>
   <button id="mute" type="button" aria-label="Mute sound" aria-pressed="false">
     <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M5 12.6h5.2l7-6.1v19l-7-6.1H5z"/>
@@ -257,6 +277,7 @@
   <p class="big">tilt the S.</p>
   <p>grab the gold s's.</p>
   <p>don't fly out.</p>
+  <p class="hint" id="hint"></p>
   <p class="cta" id="cta">drag anywhere to start</p>
   <p class="small" id="keys" hidden>arrow keys work too</p>
 </section>
@@ -270,6 +291,7 @@
   <p class="first big" id="reason">flew out!</p>
   <p class="first" id="tally">you got 0 s's</p>
   <p class="small-line" id="trip"></p>
+  <p class="hint" id="found"></p>
   <p id="bestline">best: 0</p>
   <p class="teacher" id="remark">see me after class</p>
   <p class="cta" id="again">tap to try again</p>

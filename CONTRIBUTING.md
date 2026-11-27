@@ -23,7 +23,7 @@ A robot checks the rules it can (`tools/check.mjs`) and plays your s-verse in a 
 3. Serve the repo: `python3 -m http.server` (or `npx serve`), then open `http://localhost:8000/?verse=<your-id>`. Dev mode replays your s-verse every time it finishes. Add `&loop=2` to see what you do with `ctx.loop`.
 4. Run `node tools/check.mjs` and fix anything it flags.
 5. Add yourself to the end of `s-verses/manifest.json`, which sets your s-verse's number: `{ "id": "<your-id>", "name": "Your Name", "author": "<you>" }`.
-6. Open a pull request with a line about your s-verse and a screenshot.
+6. Open a pull request with a line about your s-verse and a screenshot. By sending one, you agree to share it under the [MIT license](LICENSE), like the rest of s.computer.
 
 ## What your file exports
 
