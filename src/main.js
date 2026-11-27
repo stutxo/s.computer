@@ -5,13 +5,14 @@ import { createWormhole } from './wormhole.js';
 
 const { THREE, el, audio, hud, input, renderer, store } = core;
 const params = new URLSearchParams(location.search);
-const DEV = params.get('verse'); // ?verse=race jumps straight into one s-verse, over and over (for testing your own)
+const START = params.get('verse');                 // ?verse=golf starts you in that s-verse (the list links use this)
+let replay = !!START && params.has('replay');      // ?verse=my-idea&replay plays it again every time it ends (for testing your own)
 const ID_OK = /^[a-z0-9][a-z0-9-]{0,40}$/;
 const MAX_PER_VISIT = 12;        // one visit to an s-verse can't award more gold s's than this
 
 const run = {
   score: 0, homeCount: 0, portalFrom: 0, portalAt: 3, trips: 0, loop: Math.max(0, parseInt(params.get('loop') || '0', 10) || 0),
-  chain: [], deck: [], visited: [], best: parseInt(store.get('s.best', '0'), 10) || 0,
+  stops: 0, deck: [], dealt: 0, visited: [], best: parseInt(store.get('s.best', '0'), 10) || 0,
 };
 let manifest = [];
 let home = null;         // the notebook (kept alive between trips)
@@ -188,24 +189,17 @@ function loadVerse(id) {
   return mods.get(id);
 }
 
-function planTrip() {
-  const ids = away().map((v) => v.id);
-  if (!ids.length) return [];
-  const chain = [];
-  if (run.trips === 0) {
-    // the very first trip: the grand prix, then two more
-    if (ids.includes('race')) chain.push('race');
-    run.deck = shuffle(ids.filter((id) => !chain.includes(id)));
-    while (chain.length < Math.min(3, ids.length) && run.deck.length) chain.push(run.deck.pop());
-    return chain;
-  }
-  const n = Math.min(ids.length, Math.random() < 0.55 ? 1 : 2);
-  while (chain.length < n) {
-    if (!run.deck.length) { run.deck = shuffle(ids.slice()); run.loop++; }
+// where the next wormhole goes: a random s-verse (never the one you're in), dealt from a shuffled deck so you see
+// all of them before any comes round again. Each time the deck runs out the multiverse gets a little harder.
+function pickNext(notId) {
+  const ids = away().map((v) => v.id).filter((id) => id !== notId);
+  if (!ids.length) return null;
+  for (let tries = 0; tries < 3; tries++) {
+    if (!run.deck.length) { if (run.dealt++) run.loop++; run.deck = shuffle(away().map((v) => v.id)); }
     const id = run.deck.pop();
-    if (!chain.includes(id)) chain.push(id);
+    if (id !== notId && ids.includes(id)) return id;
   }
-  return chain;
+  return ids[(Math.random() * ids.length) | 0];
 }
 
 /* ---------- warps ---------- */
@@ -285,9 +279,9 @@ async function enterVerse(id, from) {
 }
 
 function takePortal(x, y) {
-  run.chain = planTrip();
   run.trips++;
-  const next = run.chain.shift();
+  run.stops = 0;
+  const next = pickNext(null);
   if (!next) { home.begin(); return; }
   enterVerse(next, [x, y]);
 }
@@ -296,18 +290,40 @@ function finishVerse(def, result) {
   if (!cur || cur.def !== def || leaving || warping) return;
   leaving = true;
   const center = [innerWidth / 2, innerHeight / 2];
-  if (DEV) { // testing one s-verse: just run it again
+  if (replay && def.id === START) { // testing one s-verse: just run it again
     hud.popXY(result.success === false ? 'failed! again:' : `done! +${cur.visit.earned}`, center[0], center[1] * 0.6, 'big');
-    setTimeout(() => { leaving = false; enterVerse(DEV, center); }, 1100);
+    setTimeout(() => { leaving = false; enterVerse(START, center); }, 1100);
     return;
   }
-  const next = result.success !== false ? run.chain.shift() : null;
-  if (next) { leaving = false; enterVerse(next, center); } else goHome(center, result.success === false);
+  if (result.success === false) { goHome(center, true); return; }
+  // on to another random s-verse, or (more likely the longer you've been away) back home to the notebook
+  run.stops++;
+  const next = pickNext(def.id);
+  if (next && Math.random() > Math.min(0.8, 0.15 + 0.22 * (run.stops - 1))) { leaving = false; enterVerse(next, center); } else goHome(center, false);
+}
+
+// the "next game" button: straight down a wormhole to another random s-verse, from wherever you are
+const $next = document.getElementById('next');
+function nextGame() {
+  if (!cur || warping || leaving || !away().length) return;
+  if (cur.def.home && home.state === 'intro') return;
+  replay = false;
+  if (overShown) resetRun();
+  if (cur.def.home) { run.trips++; run.stops = 0; }
+  const r = $next.getBoundingClientRect();
+  enterVerse(pickNext(cur.def.id), [r.left + r.width / 2, r.top + r.height / 2]);
+}
+$next.addEventListener('click', (e) => { e.stopPropagation(); audio.init(); nextGame(); });
+window.addEventListener('keydown', (e) => { if (e.code === 'KeyN' && !e.metaKey && !e.ctrlKey && !e.altKey) nextGame(); });
+let nextShown = false;
+function updateNext() {
+  const show = !!(cur && !warping && away().length && !(cur.def.home && home && home.state === 'intro'));
+  if (show !== nextShown) { nextShown = show; $next.classList.toggle('on', show); }
 }
 
 async function goHome(from, failed) {
   leaving = true;
-  run.chain = [];
+  run.stops = 0;
   run.portalFrom = run.homeCount;
   run.portalAt = run.homeCount + 3;
   await warp(from, homeDef, failed ? 'kicked back to' : 'back to', () => {
@@ -360,7 +376,7 @@ function showOver(reason) {
 function resetRun() {
   overShown = false;
   el.over.classList.remove('show');
-  Object.assign(run, { score: 0, homeCount: 0, portalFrom: 0, portalAt: 3, trips: 0, chain: [], deck: [], visited: [], loop: 0 });
+  Object.assign(run, { score: 0, homeCount: 0, portalFrom: 0, portalAt: 3, trips: 0, stops: 0, deck: [], dealt: 0, visited: [], loop: 0 });
   hud.score(0);
   updateMeter();
   home.reset();
@@ -392,7 +408,7 @@ function buildMenu() {
     if (v.hidden) return;
     const li = document.createElement('li'), a = document.createElement('a');
     a.href = v.home ? './' : `./?verse=${v.id}`;
-    if (v.id === (DEV || (manifest.find((x) => x.home) || {}).id)) a.setAttribute('aria-current', 'page');
+    if (cur && v.id === cur.def.id) a.setAttribute('aria-current', 'page');
     const n = document.createElement('span'), name = document.createElement('span'), by = document.createElement('span');
     n.className = 'n'; n.textContent = `#${i + 1}`;
     name.className = 'name'; name.textContent = v.name || v.id;
@@ -406,7 +422,7 @@ function setMenu(open) {
   $menu.hidden = !open;
   $logo.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
-$logo.addEventListener('click', (e) => { e.stopPropagation(); audio.init(); setMenu($menu.hidden); });
+$logo.addEventListener('click', (e) => { e.stopPropagation(); audio.init(); if ($menu.hidden) buildMenu(); setMenu($menu.hidden); });
 window.addEventListener('keydown', (e) => { if (e.code === 'Escape' && !$menu.hidden) { setMenu(false); $logo.focus(); } });
 // the "add your own" note shows on the notebook whenever you're not mid-game
 let addShown = false;
@@ -460,10 +476,10 @@ async function boot() {
   onResize();
   homeCtx = makeCtx(homeDef);
   home = homeDef.create(homeCtx.ctx);
-  if (DEV && DEV !== homeEntry.id) {
-    if (!manifest.some((v) => v.id === DEV)) manifest.push({ id: DEV }); // testing one that isn't listed yet
+  if (START && START !== homeEntry.id) {
+    if (!manifest.some((v) => v.id === START)) manifest.push({ id: START, hidden: true }); // testing one that isn't listed yet
     hud.score(0);
-    await enterVerse(DEV, [innerWidth / 2, innerHeight / 2]);
+    await enterVerse(START, [innerWidth / 2, innerHeight / 2]);
   } else setCurrent(homeDef, home, homeCtx.ctx, homeCtx.visit);
   // load the rest in the background so portals open instantly
   setTimeout(() => away().forEach((v) => loadVerse(v.id).catch((err) => console.error(err))), 1500);
@@ -474,6 +490,7 @@ renderer.setAnimationLoop((now) => {
   const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
   last = now;
   updateAdd();
+  updateNext();
   if (tunnel) { wormhole.update(dt); renderer.render(wormhole.scene, wormhole.camera); return; }
   if (!cur) return;
   if (cur.inst.showsStick) input.ring = !warping && cur.inst.showsStick();
@@ -496,6 +513,7 @@ window.__s = {
   run,
   get verse() { return cur ? cur.def.id : null; },
   get warping() { return warping; },
+  get replay() { return replay; },
   get tunnel() { return tunnel; },
   get over() { return overShown; },
   get home() { return home && home.debug ? home.debug() : null; },

@@ -1,5 +1,5 @@
 // A starter s-verse. Copy this folder to s-verses/<your-id>/, change the id below to match, and make it yours.
-// Test it at http://localhost:8000/?verse=<your-id> (see CONTRIBUTING.md). This one is a tiny complete game:
+// Test it at http://localhost:8000/?verse=<your-id>&replay (see CONTRIBUTING.md). This one is a tiny complete game:
 // gold s's rain down around a giant spinning Cool S, and you slide the googly ball to catch them.
 //
 // The rules, short version: the Cool S is the star. 20-45 seconds. One finger (or mouse), with arrow keys too.

@@ -4,7 +4,7 @@ Tilt the S. Grab the gold s's. Don't fly out.
 
 A pen draws the Cool S on a notebook page, the S peels up into 3D, and a googly-eyed ball drops in. Drag anywhere (or use the arrow keys) to tilt the S and roll into the gold s's before their rings run out.
 
-Grab 3 and a wormhole opens. Roll into it and you fly down a tunnel of Cool S's into the **s-verses**: little games that all star the Cool S, made by different people. Finish one and the wormhole takes you to the next, then eventually home to the notebook, where every 3 more gold s's opens another. Your gold s's add up across every s-verse, and the teacher grades the lot when you fly off the page.
+Grab 3 and a wormhole opens. Roll into it and you fly down a tunnel of Cool S's into the **s-verses**: little games that all star the Cool S, made by different people. Every wormhole lands you somewhere random. Finish a game and the next wormhole takes you to another, or sometimes home to the notebook, where every 3 more gold s's opens another. Or tap **next game** at the top to jump to a new one whenever you like. Your gold s's add up across every s-verse, and the teacher grades the lot when you fly off the page.
 
 ## The s-verses
 
@@ -23,7 +23,7 @@ Anyone can add one. An s-verse is a single JavaScript file that gets three.js an
 
 1. Fork this repo and copy `s-verses/_template/` to `s-verses/your-idea/`.
 2. Make it yours. The template is a tiny complete game you can play straight away.
-3. Run `python3 -m http.server` in the repo and open `http://localhost:8000/?verse=your-idea`.
+3. Run `python3 -m http.server` in the repo and open `http://localhost:8000/?verse=your-idea&replay`.
 4. Add it to `s-verses/manifest.json` with your GitHub handle and open a pull request.
 
 A robot plays every pull request in a real browser and checks the rules before a human looks at it. Your handle goes on your s-verse's title card, on the game-over note of everyone who visits it, and in the table above.

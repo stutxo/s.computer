@@ -55,7 +55,7 @@ for (const id of ids) {
     const u = new URL(r.url());
     if (u.protocol.startsWith('http') && u.host !== new URL(BASE).host && !ALLOWED_HOSTS.has(u.hostname)) problems.push(`tried to contact ${u.hostname}`);
   });
-  await page.goto(isHome ? BASE : `${BASE}?verse=${id}`);
+  await page.goto(isHome ? BASE : `${BASE}?verse=${id}&replay`);
   const t0 = Date.now();
   let arrived = false;
   while (Date.now() - t0 < 40000) {

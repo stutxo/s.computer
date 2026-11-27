@@ -23,7 +23,7 @@ Start here:
 
 Steps:
   1. Fork https://github.com/stutxo/s.computer and copy s-verses/_template to s-verses/<id>/.
-  2. Build it. Test with `python3 -m http.server` and http://localhost:8000/?verse=<id>.
+  2. Build it. Test with `python3 -m http.server` and http://localhost:8000/?verse=<id>&replay.
   3. Run `node tools/check.mjs` until it passes.
   4. Add { "id", "name", "author" } to the end of s-verses/manifest.json.
   5. Open a pull request with a screenshot. A robot plays it in a real browser, then a human plays it on a phone.

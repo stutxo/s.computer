@@ -257,6 +257,20 @@
   #addyours.on { opacity: .75; pointer-events: auto; }
   #addyours.on:hover, #addyours:focus-visible { opacity: 1; text-decoration: underline dotted; text-underline-offset: 5px; }
 
+  /* "next game": a small button at the top of every game, straight down a wormhole to another one */
+  #next {
+    position: absolute; right: 10px; top: calc(44px + var(--safe-t)); pointer-events: none; opacity: 0;
+    display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 0; background: none; cursor: pointer;
+    font-family: var(--hud-font, var(--hand)); font-size: calc(19px * max(var(--hud-scale, 1), .62)); line-height: 1;
+    color: var(--hud-ink, var(--ink)); text-shadow: 0 0 6px var(--hud-glow, var(--paper)); transform: rotate(2deg); transition: opacity .3s;
+  }
+  #next.on { pointer-events: auto; opacity: .8; }
+  #next.on:hover, #next:focus-visible { opacity: 1; }
+  #next:focus-visible { outline: 2px dashed currentColor; outline-offset: 2px; border-radius: 6px; }
+  #next svg { width: 1.05em; height: 1.05em; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; transition: transform .6s; }
+  #next:hover svg { transform: rotate(-360deg); }
+  @media (min-width: 900px) { #next { top: calc(50px + var(--safe-t)); } }
+
   /* the wormhole meter: one dot per gold s until the next wormhole */
   #meter {
     position: absolute; left: 50%; top: calc(80px + var(--safe-t)); transform: translateX(-50%);
@@ -304,6 +318,7 @@
   <div id="status" aria-live="polite"></div>
   <div id="best"></div>
   <div id="meter" role="img" aria-label=""></div>
+  <button id="next" type="button" title="next game (N)"><svg viewBox="-10 -10 20 20" aria-hidden="true"><path d="M0 0L.31.04L.6.21L.83.52L.96.95L.95 1.47L.76 2.02L.38 2.52L-.17 2.9L-.86 3.08L-1.63 3.02L-2.39 2.68L-3.06 2.07L-3.54 1.22L-3.75.19L-3.65-.94L-3.21-2.04L-2.45-2.98L-1.42-3.65L-.2-3.96L1.11-3.86L2.38-3.33L3.46-2.4L4.22-1.15L4.57.3L4.45 1.82L3.86 3.25L2.83 4.45L1.44 5.27L-.18 5.62L-1.85 5.43L-3.43 4.72L-4.74 3.52L-5.62 1.95L-5.97.15L-5.72-1.71L-4.88-3.43L-3.52-4.84L-1.78-5.79L.17-6.16L2.15-5.9L4-5.02L5.52-3.58L6.53-1.73"/></svg>next game</button>
   <button id="mute" type="button" aria-label="Mute sound" aria-pressed="false">
     <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M5 12.6h5.2l7-6.1v19l-7-6.1H5z"/>

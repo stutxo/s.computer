@@ -20,7 +20,7 @@ A robot checks the rules it can (`tools/check.mjs`) and plays your s-verse in a 
 
 1. Fork the repo and copy `s-verses/_template/` to `s-verses/<your-id>/`. Your id is lowercase letters, numbers and dashes, like `s-pinball`.
 2. In your `index.js`, set `id` to the folder name, then set `name`, `verb` and `author` (your GitHub handle, without the @).
-3. Serve the repo: `python3 -m http.server` (or `npx serve`), then open `http://localhost:8000/?verse=<your-id>`. Dev mode replays your s-verse every time it finishes. Add `&loop=2` to see what you do with `ctx.loop`.
+3. Serve the repo: `python3 -m http.server` (or `npx serve`), then open `http://localhost:8000/?verse=<your-id>&replay`. That plays yours over and over instead of moving on. Add `&loop=2` to see what you do with `ctx.loop`.
 4. Run `node tools/check.mjs` and fix anything it flags.
 5. Add yourself to the end of `s-verses/manifest.json`, which sets your s-verse's number: `{ "id": "<your-id>", "name": "Your Name", "author": "<you>" }`.
 6. Open a pull request with a line about your s-verse and a screenshot. By sending one, you agree to share it under the [MIT license](LICENSE), like the rest of s.computer.
@@ -58,7 +58,7 @@ export default {
 | `update(dt)` | required. Called every frame; `dt` is in seconds. |
 | `start()` | when the title card has gone and the player can see your s-verse. Start the action here, not in `create`. |
 | `resize()` | when the screen changes size. Re-frame your camera. |
-| `onPress(e)`, `onRelease(e)` | a finger or mouse goes down or up anywhere. `e.clientX`, `e.clientY` are in pixels. |
+| `onPress(e)`, `onRelease(e)` | a finger or mouse goes down or up anywhere. `e.clientX`, `e.clientY` are in pixels. (The top corners belong to the logo, the score and the "next game" button, so keep your own buttons out of them.) |
 | `onKey(e, dir, up)` | a key goes down (`up` is false) or up. `dir` is `'l'`, `'r'`, `'u'`, `'d'` for the arrows and WASD; check `e.code` for `'Space'` or `'Enter'`. |
 | `showsStick()`, or `ring: false` | whether to draw the drag circle while the player drags. Turn it off if you draw your own aiming. |
 | `dispose()` | when the player leaves. Stop any `ctx.audio.drone()` you started. The engine frees your scene's GPU memory and stops `ctx.audio.startLoop` music. |
