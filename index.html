@@ -202,6 +202,10 @@
     transition: opacity .3s ease, transform .7s cubic-bezier(.2,.8,.3,1);
   }
   #card.show { opacity: 1; transform: translate(-50%, -50%); }
+  #card::before { /* a dark halo so the name reads over the tunnel */
+    content: ""; position: absolute; inset: -40% -18%; z-index: -1;
+    background: radial-gradient(closest-side, rgba(11,15,46,.92) 35%, rgba(11,15,46,.6) 65%, rgba(11,15,46,0));
+  }
   #card .num { font-size: calc(16px * var(--card-scale, 1)); opacity: .75; }
   #card .name { font-size: calc(clamp(36px, 10vw, 58px) * var(--card-scale, 1)); line-height: 1.08; margin: 6px 0 8px; text-wrap: balance; }
   #card .verb { font-size: calc(clamp(24px, 6.5vw, 34px) * var(--card-scale, 1)); line-height: 1.15; color: var(--card-accent, #ffd66b); }

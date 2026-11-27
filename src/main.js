@@ -106,9 +106,14 @@ function applyTheme(def) {
   st.setProperty('--stick', color(t.stick || t.ink));
 }
 const $by = document.getElementById('cardBy');
+// whichever of two colors reads better on the dark wormhole
+function brighter(a, b) {
+  const lum = (c) => { const m = /^#([0-9a-f]{6})$/i.exec(c || ''); if (!m) return -1; const n = parseInt(m[1], 16); return 0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255); };
+  return lum(a) >= lum(b) ? a : b;
+}
 function showCard(def, label) {
   const t = def.theme || {}, cs = el.card.style;
-  cs.setProperty('--card-accent', color(t.accent || t.card));
+  cs.setProperty('--card-accent', brighter(color(t.accent), color(t.card)));
   cs.setProperty('--card-glow', color(t.glow || t.accent));
   cs.setProperty('--card-font', fontStack(t));
   cs.setProperty('--card-scale', scaleOf(t));

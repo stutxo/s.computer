@@ -5,7 +5,7 @@ export function createWormhole(THREE) {
   const BG = 0x0b0f2e;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(BG);
-  scene.fog = new THREE.Fog(BG, 5, 30);
+  scene.fog = new THREE.Fog(BG, 3, 22);
   const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.1, 60);
   camera.position.set(0, 0, 1);
 
@@ -25,16 +25,16 @@ export function createWormhole(THREE) {
   sGeo.setIndex(idx);
 
   // the tunnel: rings of S's that stream toward you, wrap round to the far end, and twist as they go
-  const RING = 14, RINGS = 26, COUNT = RING * RINGS, DEPTH = 34, R = 2.3;
-  const tiles = new THREE.InstancedMesh(sGeo, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }), COUNT);
+  const RING = 9, RINGS = 18, COUNT = RING * RINGS, DEPTH = 30, R = 2.9;
+  const tiles = new THREE.InstancedMesh(sGeo, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, transparent: true, opacity: 0.85 }), COUNT);
   tiles.frustumCulled = false;
   scene.add(tiles);
-  const PALETTE = [0x8e9bff, 0xff8ec0, 0xffd66b, 0x86ecff, 0xffffff, 0xb9a4ff];
+  const PALETTE = [0x9aa6ff, 0xf3b6d2, 0xf5dc9a, 0xa8e6f5, 0xffffff, 0xc4b8ff];
   const col = new THREE.Color();
   const items = [];
   for (let n = 0; n < COUNT; n++) {
     const ring = Math.floor(n / RING), j = n % RING;
-    items.push({ a: (j / RING) * Math.PI * 2 + ring * 0.41, z0: -(ring / RINGS) * DEPTH, r: R * (0.85 + ((n * 37) % 11) / 30), rot: n * 2.4, spin: (((n * 53) % 9) - 4) * 0.35, s: 0.8 + ((n * 29) % 7) / 10 });
+    items.push({ a: (j / RING) * Math.PI * 2 + ring * 0.41, z0: -(ring / RINGS) * DEPTH, r: R * (0.95 + ((n * 37) % 11) / 28), rot: n * 2.4, spin: (((n * 53) % 9) - 4) * 0.25, s: 0.85 + ((n * 29) % 7) / 12 });
     tiles.setColorAt(n, col.setHex(PALETTE[n % PALETTE.length]));
   }
 
@@ -51,7 +51,7 @@ export function createWormhole(THREE) {
   })();
   const glow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
   glow.position.z = -DEPTH * 0.95;
-  glow.scale.setScalar(14);
+  glow.scale.setScalar(10);
   scene.add(glow);
   const bigMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, fog: false, transparent: true });
   const big = new THREE.Mesh(sGeo, bigMat);
@@ -75,7 +75,7 @@ export function createWormhole(THREE) {
       t = 0; travel = 0; arriveT = -1;
       const tint = [theme && theme.accent, theme && theme.card, theme && theme.ink].filter((c) => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c));
       for (let n = 0; n < COUNT; n++) {
-        if (tint.length && n % 3 === 0) tiles.setColorAt(n, accent.set(tint[(n / 3) % tint.length | 0]));
+        if (tint.length && n % 4 === 0) tiles.setColorAt(n, accent.set(tint[(n / 4) % tint.length | 0]));
         else tiles.setColorAt(n, col.setHex(PALETTE[n % PALETTE.length]));
       }
       tiles.instanceColor.needsUpdate = true;
@@ -103,7 +103,7 @@ export function createWormhole(THREE) {
       big.rotation.z = Math.sin(t * 0.8) * 0.15 + k * 0.6;
       big.scale.setScalar(5);
       bigMat.opacity = Math.min(1, t * 2);
-      glow.material.opacity = 0.75 + Math.sin(t * 6) * 0.1;
+      glow.material.opacity = 0.45 + Math.sin(t * 5) * 0.06;
       camera.rotation.z = Math.sin(t * 0.9) * 0.12;
     },
   };
