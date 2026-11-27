@@ -53,7 +53,7 @@ function createRain(ctx) {
   //    so nobody gets stuck). They can go into it to move on, or keep playing. Here it sits at the right end of the floor.
   const portal = ctx.makeWormhole({ radius: 0.6 });
   portal.root.rotation.x = Math.PI / 2; // it lies flat by default: stand it up to face the camera
-  portal.root.position.set(3.15, -4.2, -0.3);
+  portal.root.position.set(3.4, -4.2, -0.3); // past the right edge, beyond where any gold s falls, so nobody slides in by accident
   scene.add(portal.root);
   function openWormhole() {
     if (portal.isOpen) return;
@@ -83,7 +83,7 @@ function createRain(ctx) {
     if (state === 'play') {
       // input: ctx.readStick() gives [x, y] from -1 to 1, from a drag anywhere or the arrow keys
       const [sx] = ctx.readStick();
-      youAt.x = Math.max(-2.8, Math.min(portal.isOpen ? 3.15 : 2.8, youAt.x + sx * 7 * dt));
+      youAt.x = Math.max(-2.8, Math.min(portal.isOpen ? 3.4 : 2.8, youAt.x + sx * 7 * dt));
       // into the wormhole: it spirals the ball in, then sends the player on (it calls ctx.finish for you)
       if (portal.over(you.root)) { state = 'warp'; portal.take(you.root); return; }
       spawnT -= dt;

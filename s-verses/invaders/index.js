@@ -20,7 +20,7 @@ const COL_GAP = 1.1, ROW_GAP = 1.2, STEP_X = 0.24, DROP = 0.42;
 const ROW_COLORS = [0xff4fd8, 0x4ff3ff, 0xfff04a];
 const KILLS_PER_S = 3;            // a gold s for every 3 invaders
 const BEAT = [98, 92.5, 87.3, 82.4]; // the heartbeat that speeds up as they thin out
-const WORM_X = HALF - 0.1;       // the wormhole: at the right end of your lane, just past where you can normally go
+const WORM_X = HALF + 0.05;      // the wormhole: past the right end of your lane, further out than any invader goes
 
 function createInvaders(ctx) {
   const { THREE, S, audio, hud } = ctx;
@@ -152,7 +152,7 @@ function createInvaders(ctx) {
   const fx = ctx.makeParticles(scene, 360, -0.04);
 
   // the wormhole: it opens at the end of your lane when you clear a wave (or time's up), and stays open
-  const portal = ctx.makeWormhole({ radius: 0.5 });
+  const portal = ctx.makeWormhole({ radius: 0.45 });
   scene.add(portal.root);
 
   /* ---------- camera ---------- */
@@ -314,7 +314,7 @@ function createInvaders(ctx) {
     const prev = px;
     px = lerp(px, targetX, 1 - Math.exp(-(ctx.input.active ? 22 : 9) * dt));
     pvx = (px - prev) / dt;
-    if (portal.isOpen && px > WORM_X - 0.15) { enterWormhole(); return; }
+    if (portal.isOpen && px > WORM_X - 0.1) { enterWormhole(); return; } // lining up with the rightmost invader never gets you this far
     fireT -= dt;
     if (fireT <= 0) { fireT = 0.26; fire(); }
     // your shots
