@@ -107,11 +107,24 @@ function createRace(ctx) {
   ground.receiveShadow = true;
   scene.add(ground);
 
+  // On a tight bend the inside edge can't stick out further than the bend's radius, or the road folds over itself.
+  // reach[0][i] / reach[1][i]: how far the road can go to the left / right of the centerline at sample i.
+  const reach = [new Float32Array(N), new Float32Array(N)];
+  for (let i = 0; i < N; i++) {
+    let left = Infinity, right = Infinity;
+    for (let j = -7; j <= 7; j++) {
+      const c = curv[(i + j + N) % N];
+      if (c > 0.05) right = Math.min(right, 0.92 / c); else if (c < -0.05) left = Math.min(left, 0.92 / -c);
+    }
+    reach[0][i] = left; reach[1][i] = right;
+  }
+  const clampLat = (i, o) => (o < 0 ? Math.max(o, -reach[0][i]) : Math.min(o, reach[1][i]));
   // a strip that follows the track between two sideways offsets
   function ribbon(o0, o1, y) {
-    const a = Math.min(o0, o1), b = Math.max(o0, o1), pos = [], uv = [], ind = [];
+    const pos = [], uv = [], ind = [];
     for (let k = 0; k <= N; k++) {
-      const p = at(k), nx = -p.tz, nz = p.tx, v = k * DS;
+      const i = k % N, p = at(k), nx = -p.tz, nz = p.tx, v = k * DS;
+      const a = clampLat(i, Math.min(o0, o1)), b = clampLat(i, Math.max(o0, o1));
       pos.push(p.x + nx * a, y, p.z + nz * a, p.x + nx * b, y, p.z + nz * b);
       uv.push(0, v, 1, v);
       if (k < N) { const j = 2 * k; ind.push(j, j + 1, j + 2, j + 1, j + 3, j + 2); }
@@ -142,7 +155,7 @@ function createRace(ctx) {
   // red and white kerbs on the bends
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v3 = new THREE.Vector3(), sc = new THREE.Vector3(), YUP = new THREE.Vector3(0, 1, 0);
   const kerbSpots = [];
-  for (let i = 0; i < N; i += 2) if (Math.abs(curv[i]) > 0.42) for (const sg of [-1, 1]) kerbSpots.push([i, sg]);
+  for (let i = 0; i < N; i += 2) if (Math.abs(curv[i]) > 0.42) for (const sg of [-1, 1]) if (HALF_W + 0.1 < reach[sg > 0 ? 1 : 0][i]) kerbSpots.push([i, sg]);
   const kerbs = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ roughness: 0.6 }), Math.max(1, kerbSpots.length));
   const RED = new THREE.Color(0xe53935), WHITE = new THREE.Color(0xffffff);
   kerbSpots.forEach(([i, sg], k) => {
