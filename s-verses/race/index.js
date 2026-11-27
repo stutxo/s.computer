@@ -317,8 +317,8 @@ function createRace(ctx) {
     else if (c.player && !c.done) gas = held || keyHeld || ctx.input.active || !!(ctx.keys.u || ctx.keys.r || ctx.keys.l || ctx.keys.d);
     else {
       // the rival knows exactly how fast each bend can go, and drives a touch under it (most of the time)
-      let skill = 0.86 + hard * 0.03;
-      if (!c.player && !you.done) { const gap = progress(c) - progress(you); skill *= gap > 0.08 ? 0.84 : gap < -0.12 ? 1.08 : 1; } // stays close, but one crash won't cost you the race
+      let skill = 0.78 + hard * 0.03;
+      if (!c.player && !you.done) { const gap = progress(c) - progress(you); skill *= gap > 0.06 ? 0.8 : gap < -0.15 ? 1.03 : 1; } // stays close, but one crash won't cost you the race
       if (c.greedy > 0) skill = 1.2;
       gas = c.v < skill * L.vsafe[c.i];
     }
