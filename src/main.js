@@ -400,9 +400,11 @@ el.share.addEventListener('click', async (e) => {
 
 /* ---------- the list of every s-verse (tap the logo) ---------- */
 
-const $logo = document.getElementById('logo'), $menu = document.getElementById('menu'), $list = document.getElementById('menuList');
+const $logo = document.getElementById('logo'), $games = document.getElementById('games'), $menu = document.getElementById('menu'), $list = document.getElementById('menuList');
 const $add = document.getElementById('addyours');
 function buildMenu() {
+  const n = manifest.filter((v) => !v.hidden).length;
+  document.getElementById('gamesN').textContent = `${n} ${n === 1 ? 'game' : 'games'}`;
   $list.textContent = '';
   manifest.forEach((v, i) => {
     if (v.hidden) return;
@@ -420,10 +422,10 @@ function buildMenu() {
 }
 function setMenu(open) {
   $menu.hidden = !open;
-  $logo.setAttribute('aria-expanded', open ? 'true' : 'false');
+  for (const b of [$logo, $games]) b.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
-$logo.addEventListener('click', (e) => { e.stopPropagation(); audio.init(); if ($menu.hidden) buildMenu(); setMenu($menu.hidden); });
-window.addEventListener('keydown', (e) => { if (e.code === 'Escape' && !$menu.hidden) { setMenu(false); $logo.focus(); } });
+for (const b of [$logo, $games]) b.addEventListener('click', (e) => { e.stopPropagation(); audio.init(); if ($menu.hidden) buildMenu(); setMenu($menu.hidden); });
+window.addEventListener('keydown', (e) => { if (e.code === 'Escape' && !$menu.hidden) { setMenu(false); $games.focus(); } });
 // the "add your own" note shows on the notebook whenever you're not mid-game
 let addShown = false;
 function updateAdd() {
