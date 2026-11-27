@@ -9,6 +9,7 @@ const START = params.get('verse');                 // ?verse=golf starts you in 
 let replay = !!START && params.has('replay');      // ?verse=my-idea&replay plays it again every time it ends (for testing your own)
 const ID_OK = /^[a-z0-9][a-z0-9-]{0,40}$/;
 const MAX_PER_VISIT = 12;        // one visit to an s-verse can't award more gold s's than this
+const VISIT_TIME = 45;           // seconds in an s-verse before its wormhole opens anyway
 
 const run = {
   score: 0, homeCount: 0, portalFrom: 0, portalAt: 3, trips: 0, loop: Math.max(0, parseInt(params.get('loop') || '0', 10) || 0),
@@ -105,6 +106,8 @@ function makeCtx(def) {
     return run.score;
   };
   ctx.finish = (result = {}) => finishVerse(def, result);
+  // every s-verse's wormhole: going in sends the player on
+  ctx.makeWormhole = (opts = {}) => core.makeWormhole({ ...opts, onEnter: () => ctx.finish({ success: true }) });
   if (def.home) {
     ctx.home = {
       collected() { run.homeCount++; updateMeter(true); },
@@ -510,6 +513,10 @@ renderer.setAnimationLoop((now) => {
   else input.ring = !warping && cur.inst.ring !== false;
   if (!input.ring && el.stick.classList.contains('on')) core.hideStick();
   else if (input.ring && input.active && !el.stick.classList.contains('on')) core.showStick();
+  if (!cur.def.home && !warping && !leaving && !cur.timeUp && (cur.visitT = (cur.visitT || 0) + dt) > VISIT_TIME) {
+    cur.timeUp = true; // time's up: the wormhole opens even if they haven't won (they can still keep playing)
+    if (cur.inst.openWormhole) try { cur.inst.openWormhole('time'); } catch (err) { onCrash(err); return; }
+  }
   try { cur.inst.update(dt); } catch (err) { onCrash(err); return; }
   renderer.render(cur.inst.scene, cur.inst.camera);
   if (!window.__sReady) {

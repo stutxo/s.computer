@@ -1,7 +1,8 @@
 // s-verse #4: S-Invaders. Rows of little Cool S's march back and forth and down, the way they did in 1978.
 // Your cannon fires by itself; drag left and right (or hold the arrow keys) to aim and dodge their s-bombs.
 // Hide behind the bunkers (Cool S's lying on their side). Shoot the gold mothership for a bonus.
-// Clear the wave and the multiverse goes on. Lose all 3 lives (or let them land) and you're sent home.
+// Clear the wave and a wormhole opens at the right end of your lane: drive into it to go on, or take on the next wave.
+// Lose all 3 lives (or let them land) and you start again.
 
 export default {
   id: 'invaders',
@@ -19,6 +20,7 @@ const COL_GAP = 1.1, ROW_GAP = 1.2, STEP_X = 0.24, DROP = 0.42;
 const ROW_COLORS = [0xff4fd8, 0x4ff3ff, 0xfff04a];
 const KILLS_PER_S = 3;            // a gold s for every 3 invaders
 const BEAT = [98, 92.5, 87.3, 82.4]; // the heartbeat that speeds up as they thin out
+const WORM_X = HALF - 0.1;       // the wormhole: at the right end of your lane, just past where you can normally go
 
 function createInvaders(ctx) {
   const { THREE, S, audio, hud } = ctx;
@@ -149,6 +151,10 @@ function createInvaders(ctx) {
   const bombs = [0, 1, 2, 3, 4, 5].map(() => { const m = new THREE.Mesh(bombGeo, bombMat); m.visible = false; scene.add(m); return { m, on: false, x: 0, z: 0, v: 0 }; });
   const fx = ctx.makeParticles(scene, 360, -0.04);
 
+  // the wormhole: it opens at the end of your lane when you clear a wave (or time's up), and stays open
+  const portal = ctx.makeWormhole({ radius: 0.5 });
+  scene.add(portal.root);
+
   /* ---------- camera ---------- */
   const FIT = [];
   for (const x of [-HALF - 0.3, HALF + 0.3]) for (const z of [-7.6, 6.7]) for (const y of [0, 0.7]) FIT.push(new THREE.Vector3(x, y, z));
@@ -166,9 +172,9 @@ function createInvaders(ctx) {
 
   /* ---------- state ---------- */
   let state = 'intro', stateT = 0, lives = 3, kills = 0, alive = TOTAL, stepT = 0.6, beat = 0;
-  let px = 0, targetX = 0, drag = null, fireT = 0.4, bombT = 1.6, invuln = 0, sent = false, ended = '';
+  let px = 0, targetX = 0, drag = null, fireT = 0.4, bombT = 1.6, invuln = 0, ended = '', wave = 0;
   const setState = (s) => { state = s; stateT = 0; };
-  const interval = () => (0.085 + 0.47 * Math.pow(alive / TOTAL, 1.25)) / (1 + hard * 0.15);
+  const interval = () => (0.085 + 0.47 * Math.pow(alive / TOTAL, 1.25)) / (1 + hard * 0.15 + Math.min(wave, 4) * 0.08);
   function status() { hud.status(`LIVES ${lives}   ${alive} LEFT`); }
 
   function march() {
@@ -261,6 +267,36 @@ function createInvaders(ctx) {
     hud.status(why === 'landed' ? 'THEY LANDED' : 'NO LIVES LEFT');
   }
 
+  // the next wave (after a win) or a fresh start (after a loss); clearing a wave opens the wormhole
+  function again() {
+    const won = state === 'won';
+    if (won) wave++; else { lives = 3; kills = 0; }
+    form.x = 0; form.z = -5.6; form.dir = 1; form.frame = 0;
+    for (const v of inv) { v.alive = true; v.die = 0; v.mesh.visible = true; v.mesh.scale.setScalar(1); placeInv(v); }
+    alive = TOTAL; stepT = 0.6; beat = 0; fireT = 0.4; bombT = 1.6; invuln = 1;
+    for (const o of [...shots, ...bombs]) { o.on = false; o.m.visible = false; }
+    cells.forEach((c, k) => { c.alive = true; blocks.setMatrixAt(k, m4.compose(_p.set(c.x, 0.1, c.z), _q, _s)); }); // fresh bunkers
+    blocks.instanceMatrix.needsUpdate = true;
+    endUFO();
+    setState('ready');
+    hud.status('GET READY');
+    hud.popXY(won ? 'NEXT WAVE!' : 'TRY AGAIN!', innerWidth / 2, innerHeight * 0.45, 'big');
+    if (won) openWormhole('won');
+  }
+  function openWormhole(why) {
+    if (portal.isOpen) return;
+    portal.open(WORM_X, -0.03, PLAYER_Z);
+    hud.pop(why === 'time' ? "TIME'S UP! A WORMHOLE!" : 'A WORMHOLE!', WORM_X - 0.6, 0.8, PLAYER_Z - 0.9, camera, 'big');
+    setTimeout(() => hud.pop('DRIVE INTO IT TO GO', WORM_X - 0.9, 0.6, PLAYER_Z - 0.4, camera), 1000);
+  }
+  function enterWormhole() {
+    setState('warp');
+    endUFO();
+    for (const o of [...shots, ...bombs]) { o.on = false; o.m.visible = false; }
+    cannon.attach(googly.root); // you go too
+    portal.take(cannon); // spirals the cannon in, then sends you on
+  }
+
   /* ---------- simulation ---------- */
   const STEP = 1 / 120;
   let acc = 0;
@@ -274,10 +310,11 @@ function createInvaders(ctx) {
     const k = ctx.keys;
     if (ctx.input.active && drag) targetX = drag.px0 + (ctx.input.x - drag.x0) / pxPerUnit * 1.15;
     else if (k.l || k.r) targetX = px + (k.r - k.l) * 0.6;
-    targetX = clamp(targetX, -HALF + 0.4, HALF - 0.4);
+    targetX = clamp(targetX, -HALF + 0.4, portal.isOpen ? WORM_X : HALF - 0.4);
     const prev = px;
     px = lerp(px, targetX, 1 - Math.exp(-(ctx.input.active ? 22 : 9) * dt));
     pvx = (px - prev) / dt;
+    if (portal.isOpen && px > WORM_X - 0.15) { enterWormhole(); return; }
     fireT -= dt;
     if (fireT <= 0) { fireT = 0.26; fire(); }
     // your shots
@@ -342,7 +379,8 @@ function createInvaders(ctx) {
     while (acc >= STEP && n < 10) { physStep(STEP); acc -= STEP; n++; }
     if (n === 10) acc = 0;
     invuln = Math.max(0, invuln - dt);
-    if ((state === 'won' || state === 'lost') && stateT > 2.4 && !sent) { sent = true; ctx.finish({ success: state === 'won' }); }
+    if ((state === 'won' || state === 'lost') && stateT > 2.4) again();
+    portal.update(dt);
 
     // invaders wiggle on every step, and pop when they die
     for (const v of inv) {
@@ -361,13 +399,15 @@ function createInvaders(ctx) {
     glowPulse = Math.max(0, glowPulse - dt * 4);
     glow.material.opacity = 0.16 + glowPulse * 0.14 + (state === 'won' ? 0.2 + Math.sin(t * 12) * 0.15 : 0);
 
-    cannon.position.set(px, 0, PLAYER_Z);
-    cannon.visible = state !== 'lost' || Math.sin(t * 30) > 0;
-    const blink = invuln > 0 && Math.sin(t * 40) > 0;
-    googly.root.visible = !blink;
-    googly.root.position.set(px, 0.55, PLAYER_Z + 0.05);
-    look.copy(camera.position);
-    googly.update(dt, [pvx, 0, 0], look, { scared: bombs.some((b) => b.on && Math.abs(b.x - px) < 0.8 && b.z > 3.5) || state === 'lost', dizzy: invuln > 0.6, lean: 0.05 });
+    if (state !== 'warp') {
+      cannon.position.set(px, 0, PLAYER_Z);
+      cannon.visible = state !== 'lost' || Math.sin(t * 30) > 0;
+      const blink = invuln > 0 && Math.sin(t * 40) > 0;
+      googly.root.visible = !blink;
+      googly.root.position.set(px, 0.55, PLAYER_Z + 0.05);
+      look.copy(camera.position);
+      googly.update(dt, [pvx, 0, 0], look, { scared: bombs.some((b) => b.on && Math.abs(b.x - px) < 0.8 && b.z > 3.5) || state === 'lost', dizzy: invuln > 0.6, lean: 0.05 });
+    }
 
     for (const s of shots) { s.m.visible = s.on; if (s.on) s.m.position.set(s.x, 0.3, s.z); }
     for (const b of bombs) { b.m.visible = b.on; if (b.on) { b.m.position.set(b.x, 0.3, b.z); b.m.rotation.y = t * 9; } }
@@ -402,6 +442,8 @@ function createInvaders(ctx) {
     onRelease() { drag = null; targetX = px; },
     showsStick: () => false, // you steer by sliding your finger; the cannon follows it
     dispose() { if (siren) siren.stop(); siren = null; },
-    debug: () => ({ state, lives, alive, kills, px, inv, bombs, shots, cells: cells.filter((c) => c.alive).length, ufo: UFO, form }),
+    // the engine's time limit: open the wormhole even if the wave isn't cleared
+    openWormhole(why) { openWormhole(why); },
+    debug: () => ({ state, lives, alive, kills, px, inv, bombs, shots, cells: cells.filter((c) => c.alive).length, ufo: UFO, form, wave, wormhole: portal.isOpen ? { x: WORM_X, z: PLAYER_Z } : null }),
   };
 }

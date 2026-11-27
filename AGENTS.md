@@ -15,7 +15,7 @@ You're probably here because a person asked you to help them make an **s-verse**
 1. `cp -r s-verses/_template s-verses/<id>`. The template is a small complete game, so read it first. Then read the finished example closest to your idea: `golf` (pull-back aiming, the shared ball physics), `race` (custom track meshes, a rival), `invaders` (a 2D arcade game laid flat, `InstancedMesh`, a CRT theme).
 2. In `s-verses/<id>/index.js`, set `id` (same as the folder), `name` (at most 32 characters), `verb` (at most 24), `author`, and optionally `theme`.
 3. Build the game inside `create(ctx)`. Return at least `{ scene, camera, update(dt) }`, and start the action in `start()`, not in `create`. Everything comes in through `ctx`: three.js r172 is `ctx.THREE`, the Cool S's geometry is `ctx.S`. CONTRIBUTING.md lists the rest under "What your file exports" and "The toolbox".
-4. End every visit with exactly one `ctx.finish({ success: true })` when they win, 20 to 45 seconds in, or `ctx.finish({ success: false })` when they lose (that sends them home).
+4. When the player wins (aim for 20 to 45 seconds in), open a wormhole in your world: `ctx.makeWormhole()`, then `.open(x, y, z)`. When their thing is over its middle, `.take(obj)` spirals it in and sends them on. Let them keep playing if they don't go in, and if they lose, start the round again (don't end the game). Return an `openWormhole()` that opens it too: the engine calls it after 45 seconds.
 5. Give out gold s's with `ctx.addScore(n)`. A visit tops out at 12.
 6. Add one line to the end of `s-verses/manifest.json`: `{ "id": "<id>", "name": "<Name>", "author": "<handle>" }`.
 
@@ -30,7 +30,7 @@ You're probably here because a person asked you to help them make an **s-verse**
 - No URLs anywhere in the code, not even in strings. Draw everything with three.js or a canvas, and make sounds with `ctx.audio`.
 - Under 150 KB.
 - `id` matches the folder, and `author` is a GitHub handle without the @ that matches the manifest.
-- It calls `ctx.finish(...)`.
+- It has a wormhole: it calls `ctx.makeWormhole()`.
 
 These ones a person checks:
 
@@ -61,7 +61,7 @@ node tools/smoke.mjs <id>
 
 - [ ] `node tools/check.mjs` passes.
 - [ ] It plays start to finish at `?verse=<id>&replay` with no console errors, by touch or mouse and by keys.
-- [ ] Winning calls `ctx.finish({ success: true })`, losing calls `ctx.finish({ success: false })`.
+- [ ] Winning opens the wormhole, going into it moves on, losing starts the round again, and `openWormhole()` opens it too.
 - [ ] Its line is at the end of `s-verses/manifest.json`.
 - [ ] A pull request that fills in the template: the s-verse's name and id, what you do in one line, a screenshot, and the checklist. Sending it shares the s-verse under the MIT license, so check your person is happy with that.
 

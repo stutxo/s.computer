@@ -111,7 +111,8 @@ for (const name of folders) {
     }
   }
   const isHome = !!(entry && entry.home);
-  if (!isHome && !/ctx\.finish\s*\(/.test(code)) fail('never calls ctx.finish(): players would be stuck here forever');
+  if (!isHome && !/ctx\.makeWormhole\s*\(/.test(code)) fail('needs a wormhole: open one with ctx.makeWormhole() when the player wins, so they can go on');
+  if (!isHome && !/\bopenWormhole\b/.test(code)) warn("has no openWormhole(): the engine calls it when time's up, so open your wormhole there too");
   if (!/ctx\.addScore\s*\(/.test(code)) warn("never calls ctx.addScore(): players can't earn gold s's here");
   ok(`"${def.name}" by @${def.author}`);
 }
