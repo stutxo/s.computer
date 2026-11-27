@@ -242,7 +242,7 @@ function createRace(ctx) {
   const fx = ctx.makeParticles(scene, 300, DESK_Y);
 
   // the wormhole: it opens in your lane when you win (or time's up) and stays open while you race on
-  const portal = ctx.makeWormhole({ radius: 0.3 });
+  const portal = ctx.makeWormhole({ radius: 0.36 });
   scene.add(portal.root);
   const wormD = nearIn(you.lane.pts, ...WORM) * you.lane.ds; // how far round your lane it sits
 
