@@ -8,6 +8,7 @@ const params = new URLSearchParams(location.search);
 const START = params.get('verse');                 // ?verse=golf starts you in that s-verse (the list links use this)
 let replay = !!START && params.has('replay');      // ?verse=my-idea&replay plays it again every time it ends (for testing your own)
 const ID_OK = /^[a-z0-9][a-z0-9-]{0,40}$/;
+const VER = new URL(import.meta.url).searchParams.get('v'); // which update this is (index.html adds it)
 const MAX_PER_VISIT = 12;        // one visit to an s-verse can't award more gold s's than this
 const VISIT_TIME = 45;           // seconds in an s-verse before its wormhole opens anyway
 
@@ -175,7 +176,9 @@ const mods = new Map();
 function loadVerse(id) {
   if (!ID_OK.test(id)) return Promise.reject(new Error(`bad s-verse id "${id}"`));
   if (!mods.has(id)) {
-    mods.set(id, import(`../s-verses/${id}/index.js`).then((m) => {
+    // under the same update stamp as the engine (see index.html), so nobody gets an old s-verse with a new engine
+    const url = new URL(`../s-verses/${id}/index.js${VER ? `?v=${VER}` : ''}`, import.meta.url).href;
+    mods.set(id, import(url).then((m) => {
       const def = m.default;
       if (!def || typeof def.create !== 'function') throw new Error(`s-verse "${id}" has no create()`);
       if (def.id !== id) throw new Error(`s-verse in folder "${id}" says its id is "${def.id}"`);
