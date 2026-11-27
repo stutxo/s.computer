@@ -111,14 +111,8 @@ function makeCtx(def) {
       portalReady: () => run.homeCount >= run.portalAt && away().length > 0,
       enterPortal: (x, y) => takePortal(x, y),
       gameOver: (reason) => showOver(reason),
-      showTitle() {
-        el.cta.textContent = core.coarse ? 'drag anywhere to start' : 'click and drag to start';
-        el.keys.hidden = core.coarse;
-        document.getElementById('hint').textContent = hintLine();
-        el.title.classList.add('show');
-        hud.best(run.best);
-      },
-      hideTitle() { el.title.classList.remove('show'); hud.score(run.score); },
+      ready() { hud.best(run.best); },      // the ball has landed and waits for the first touch
+      started() { hud.score(run.score); },  // play has begun: show the score
     };
   }
   return { ctx, visit };
