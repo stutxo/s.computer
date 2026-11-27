@@ -3,8 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<!-- s-verses are community code: this keeps any of them from sending data off the site -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>s.computer</title>
-<meta name="description" content="Tilt the S. Grab the gold s's. Don't fly out.">
+<meta name="description" content="Tilt the S. Grab the gold s's. Don't fly out. Then fall through portals into a multiverse of S-shaped games.">
 <meta name="theme-color" content="#e8ece7">
 <meta property="og:title" content="s.computer">
 <meta property="og:description" content="tilt the S. grab the gold s's. don't fly out.">
@@ -47,16 +49,20 @@
   /* ---------- HUD: written in the margins ---------- */
   #hud { position: fixed; inset: 0; pointer-events: none; }
   #logo {
-    position: absolute; left: 16px; top: calc(12px + var(--safe-t));
-    font-size: 22px; line-height: 1; transform: rotate(-3deg); transform-origin: left center;
+    position: absolute; left: 10px; top: calc(6px + var(--safe-t)); pointer-events: auto; cursor: pointer;
+    font: inherit; font-size: calc(22px * var(--hud-scale, 1)); line-height: 1; padding: 6px; border: 0; background: none;
+    transform: rotate(-3deg); transform-origin: left center; display: flex; align-items: center; gap: 5px;
   }
+  #logo .caret { width: .5em; height: .4em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .6; transition: transform .2s; }
+  #logo[aria-expanded="true"] .caret { transform: rotate(180deg); }
+  #logo:focus-visible { outline: 2px dashed currentColor; outline-offset: 2px; border-radius: 6px; }
   #best {
     position: absolute; right: 16px; top: calc(14px + var(--safe-t));
-    font-size: 21px; line-height: 1; transform: rotate(2deg); transform-origin: right center;
+    font-size: calc(21px * var(--hud-scale, 1)); line-height: 1; transform: rotate(2deg); transform-origin: right center;
   }
   #score {
     position: absolute; left: 50%; top: calc(6px + var(--safe-t));
-    font-size: 68px; line-height: 1; transform: translateX(-50%);
+    font-size: calc(68px * var(--hud-scale, 1)); line-height: 1; transform: translateX(-50%);
     text-shadow: 0 0 6px var(--paper), 0 0 2px var(--paper);
     opacity: 0; transition: opacity .3s;
   }
@@ -69,10 +75,10 @@
   #mute {
     pointer-events: auto; position: absolute; left: 8px; bottom: calc(8px + var(--safe-b));
     width: 48px; height: 48px; padding: 8px; border: 0; background: none;
-    color: var(--ink); cursor: pointer; opacity: .75;
+    color: var(--hud-ink, var(--ink)); cursor: pointer; opacity: .75;
   }
   #mute:hover { opacity: 1; }
-  #mute:focus-visible { outline: 2px dashed var(--ink); outline-offset: 2px; border-radius: 10px; }
+  #mute:focus-visible { outline: 2px dashed currentColor; outline-offset: 2px; border-radius: 10px; }
   #mute svg { display: block; width: 32px; height: 32px; }
   #mute .x { display: none; }
   #mute[aria-pressed="true"] .x { display: inline; }
@@ -82,25 +88,26 @@
   #stick {
     --r2: 140px;
     position: fixed; left: 0; top: 0; width: var(--r2); height: var(--r2); margin: calc(var(--r2) / -2);
-    border: 2px dashed rgba(35, 53, 168, .32); border-radius: 50%;
+    border: 2px dashed rgba(35, 53, 168, .32); border-color: color-mix(in srgb, var(--stick, #2335a8) 34%, transparent); border-radius: 50%;
     pointer-events: none; opacity: 0; transition: opacity .12s;
   }
   #stick.on { opacity: 1; }
   #knob {
     position: absolute; left: 50%; top: 50%; width: 38px; height: 38px; margin: -19px;
-    border-radius: 50%; background: rgba(255, 79, 147, .2); border: 2.5px solid rgba(35, 53, 168, .5);
+    border-radius: 50%; background: rgba(255, 79, 147, .2); border: 2.5px solid rgba(35, 53, 168, .5); border-color: color-mix(in srgb, var(--stick, #2335a8) 52%, transparent);
   }
 
   #pops { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
   .pop {
     position: absolute; transform: translate(-50%, -50%);
-    font-size: 34px; line-height: 1; white-space: nowrap; color: var(--ink);
-    text-shadow: 0 0 5px #fff, 0 0 2px #fff, 0 0 1px #fff;
+    font-size: calc(34px * var(--hud-scale, 1)); line-height: 1; white-space: nowrap; color: var(--hud-ink, var(--ink));
+    font-family: var(--hud-font, var(--hand));
+    text-shadow: 0 0 5px var(--hud-glow, #fff), 0 0 2px var(--hud-glow, #fff), 0 0 1px var(--hud-glow, #fff);
     animation: pop .95s ease-out forwards;
   }
   .pop.gold { color: #a86f00; }
   .pop.red { color: var(--red); font-family: var(--teacher); font-size: 20px; }
-  .pop.big { font-size: 60px; }
+  .pop.big { font-size: calc(60px * var(--hud-scale, 1)); }
   @keyframes pop {
     0% { opacity: 0; transform: translate(-50%, -30%) scale(.5) rotate(-8deg); }
     18% { opacity: 1; transform: translate(-50%, -60%) scale(1.12) rotate(3deg); }
@@ -163,10 +170,126 @@
   #fallback svg { width: min(36vw, 160px); height: auto; margin: 0 auto; }
 
   @media (min-width: 900px) {
-    #logo { font-size: 26px; }
-    #best { font-size: 24px; }
-    #score { font-size: 76px; }
+    #logo { font-size: calc(26px * var(--hud-scale, 1)); }
+    #best { font-size: calc(24px * var(--hud-scale, 1)); }
+    #score { font-size: calc(76px * var(--hud-scale, 1)); }
   }
+
+  /* ---------- s-verses ---------- */
+  #status {
+    position: absolute; left: 50%; top: calc(76px + var(--safe-t)); transform: translateX(-50%);
+    font-size: calc(20px * var(--hud-scale, 1)); line-height: 1.1; white-space: nowrap;
+  }
+  #score, #status, #best, #logo { font-family: var(--hud-font, var(--hand)); color: var(--hud-ink, var(--ink)); }
+  #status, #score { text-shadow: 0 0 6px var(--hud-glow, var(--paper)), 0 0 2px var(--hud-glow, var(--paper)); }
+  body.away #logo, body.away #best { text-shadow: 0 0 6px var(--hud-glow, transparent); }
+  body.away .vignette { display: none; }
+  .pop.gold { color: var(--pop-gold, #a86f00); }
+  body.away .pop.gold { --pop-gold: #ffc21a; }
+  #flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; }
+  .crt {
+    display: none; position: fixed; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(180deg, rgba(0,0,0,.2) 0 1px, transparent 1px 3px), radial-gradient(120% 90% at 50% 50%, transparent 62%, rgba(0,0,0,.5) 100%);
+  }
+  body.scanlines .crt { display: block; }
+
+  /* the trip between s-verses: a dark circle opens from the portal, the wormhole plays on the canvas behind it */
+  #warp { position: fixed; inset: 0; z-index: 20; display: none; background: #0b0f2e; clip-path: circle(0px at 50% 50%); }
+  #warp.on { display: block; }
+
+  /* the next s-verse's name, glowing over the wormhole in its own lettering */
+  #card {
+    position: fixed; left: 50%; top: 50%; z-index: 21; width: min(90vw, 460px);
+    transform: translate(-50%, -46%); opacity: 0; pointer-events: none; text-align: center;
+    color: #fff; font-family: var(--card-font, var(--hand));
+    text-shadow: 0 0 22px var(--card-glow, #6f7dff), 0 0 3px var(--card-glow, #6f7dff), 0 2px 0 rgba(0,0,0,.35);
+    transition: opacity .3s ease, transform .7s cubic-bezier(.2,.8,.3,1);
+  }
+  #card.show { opacity: 1; transform: translate(-50%, -50%); }
+  #card::before { /* a dark halo so the name reads over the tunnel */
+    content: ""; position: absolute; inset: -40% -18%; z-index: -1;
+    background: radial-gradient(closest-side, rgba(11,15,46,.92) 35%, rgba(11,15,46,.6) 65%, rgba(11,15,46,0));
+  }
+  #card .num { font-size: calc(16px * var(--card-scale, 1)); opacity: .75; }
+  #card .name { font-size: calc(clamp(36px, 10vw, 58px) * var(--card-scale, 1)); line-height: 1.08; margin: 6px 0 8px; text-wrap: balance; }
+  #card .verb { font-size: calc(clamp(24px, 6.5vw, 34px) * var(--card-scale, 1)); line-height: 1.15; color: var(--card-accent, #ffd66b); }
+  #card .by { font-size: calc(15px * var(--card-scale, 1)); opacity: .7; margin-top: 12px; }
+
+  #over .small-line { font-size: 19px; opacity: .85; }
+  /* the quiet "there's more in here" hint: a pencil line on the notes */
+  .note .hint { font-size: 19px; color: #6d7382; transform: rotate(-1deg); }
+  .note .hint:empty { display: none; }
+  .note .cta { margin-top: 22px; }
+
+  /* the list of every s-verse: a scrap of notebook paper under the logo */
+  #menu {
+    position: absolute; left: 12px; top: calc(46px + var(--safe-t)); z-index: 6; pointer-events: auto;
+    width: min(84vw, 320px); padding: 12px 16px 10px 40px; color: var(--ink); font-family: var(--hand);
+    background:
+      linear-gradient(90deg, transparent 28px, var(--margin) 28px, var(--margin) 30px, transparent 30px),
+      repeating-linear-gradient(180deg, #fbfcf9 0, #fbfcf9 33px, var(--rule) 33px, var(--rule) 34px);
+    box-shadow: 0 18px 40px -16px rgba(20, 30, 90, .5), 0 2px 6px rgba(20, 30, 90, .14);
+    transform: rotate(-1deg); transform-origin: top left;
+  }
+  #menu[hidden] { display: none; }
+  #menu .menu-head { margin: 0 0 2px; font-size: 17px; line-height: 22px; color: #6d7382; }
+  #menu ol { list-style: none; margin: 0; padding: 0; }
+  #menu li a {
+    display: flex; align-items: baseline; gap: 8px; min-height: 34px; padding: 4px 0;
+    color: var(--ink); text-decoration: none; font-size: 22px; line-height: 26px;
+  }
+  #menu li a:hover .name, #menu li a:focus-visible .name { text-decoration: underline wavy var(--pink) 2px; text-underline-offset: 5px; }
+  #menu li a:focus-visible { outline: none; }
+  #menu .n { width: 1.6em; flex: none; font-size: 16px; color: #6d7382; }
+  #menu .name { flex: 1; }
+  #menu .by { font-size: 16px; color: #6d7382; }
+  #menu li a[aria-current="page"] .name { text-decoration: underline wavy var(--pink) 2px; text-underline-offset: 5px; }
+  #menu .menu-add { display: inline-flex; align-items: center; gap: 7px; margin-top: 6px; font-size: 18px; color: var(--ink); }
+  #menu .menu-add svg, #addyours svg { width: 1em; height: 1em; fill: currentColor; flex: none; }
+
+  /* a little "add your own" note in the corner while you're not playing */
+  #addyours {
+    position: fixed; right: 12px; bottom: calc(14px + var(--safe-b)); z-index: 4;
+    display: inline-flex; align-items: center; gap: 7px; padding: 6px 8px;
+    font-size: 17px; color: var(--ink); text-decoration: none; opacity: 0; pointer-events: none;
+    transform: rotate(-2deg); transition: opacity .3s;
+  }
+  #addyours.on { opacity: .75; pointer-events: auto; }
+  #addyours.on:hover, #addyours:focus-visible { opacity: 1; text-decoration: underline dotted; text-underline-offset: 5px; }
+
+  /* "next game": a small button at the top of every game, straight down a wormhole to another one */
+  #next {
+    position: absolute; right: 10px; top: calc(44px + var(--safe-t)); pointer-events: none; opacity: 0;
+    display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 0; background: none; cursor: pointer;
+    font-family: var(--hud-font, var(--hand)); font-size: calc(19px * max(var(--hud-scale, 1), .62)); line-height: 1;
+    color: var(--hud-ink, var(--ink)); text-shadow: 0 0 6px var(--hud-glow, var(--paper)); transform: rotate(2deg); transition: opacity .3s;
+  }
+  #next.on { pointer-events: auto; opacity: .8; }
+  #next.on:hover, #next:focus-visible { opacity: 1; }
+  #next:focus-visible { outline: 2px dashed currentColor; outline-offset: 2px; border-radius: 6px; }
+  #next svg { width: 1.05em; height: 1.05em; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; transition: transform .6s; }
+  #next:hover svg { transform: rotate(-360deg); }
+  @media (min-width: 900px) { #next { top: calc(50px + var(--safe-t)); } }
+
+  /* the wormhole meter: one dot per gold s until the next wormhole */
+  #meter {
+    position: absolute; left: 50%; top: calc(80px + var(--safe-t)); transform: translateX(-50%);
+    display: none; align-items: center; gap: 6px; opacity: .85;
+  }
+  #meter.on { display: flex; }
+  #meter i { width: 9px; height: 9px; border-radius: 50%; border: 2px solid rgba(35, 53, 168, .42); background: rgba(252, 253, 250, .7); }
+  #meter i.on { background: #ffc21a; border-color: #a86f00; }
+  #meter i.bump { animation: dot-bump .4s cubic-bezier(.2, 1.6, .4, 1); }
+  @keyframes dot-bump { 0% { transform: scale(2); } 100% { transform: scale(1); } }
+  #meter svg { width: 18px; height: 18px; margin-left: 3px; fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; opacity: .55; }
+  #meter.open svg { opacity: 1; animation: meter-spin 1.8s linear infinite; }
+  @keyframes meter-spin { to { transform: rotate(-360deg); } }
+  @media (prefers-reduced-motion: reduce) { #meter.open svg { animation: none; } }
+  #make {
+    pointer-events: auto; color: var(--ink);
+    text-decoration: underline dotted; text-underline-offset: 5px;
+  }
+  #make:focus-visible { outline: 2px dashed var(--ink); outline-offset: 2px; border-radius: 6px; }
 </style>
 <script type="importmap">
 {
@@ -176,15 +299,26 @@
   }
 }
 </script>
+<link rel="modulepreload" href="./src/main.js">
 </head>
 <body>
-<canvas id="c" role="img" aria-label="A giant Cool S floating over a notebook page. Drag to tilt it and roll the googly-eyed ball into the gold s's."></canvas>
+<canvas id="c" role="img" aria-label="A giant Cool S floating over a notebook page. Drag to tilt it and roll the googly-eyed ball into the gold s's. Portals lead to other S-shaped games, called s-verses."></canvas>
 <div class="vignette"></div>
+<div class="crt"></div>
+<div id="flash"></div>
 
 <div id="hud">
-  <div id="logo">s.computer</div>
+  <button id="logo" type="button" aria-expanded="false" aria-controls="menu">s.computer<svg class="caret" viewBox="0 0 12 8" aria-hidden="true"><path d="M1.5 1.8 6 6.2l4.5-4.4"/></svg></button>
+  <nav id="menu" aria-label="every s-verse" hidden>
+    <p class="menu-head">every s-verse, and who made it</p>
+    <ol id="menuList"></ol>
+    <a class="menu-add" href="https://github.com/stutxo/s.computer#make-your-own-s-verse" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>add your own s-verse</a>
+  </nav>
   <div id="score" aria-live="polite"></div>
+  <div id="status" aria-live="polite"></div>
   <div id="best"></div>
+  <div id="meter" role="img" aria-label=""></div>
+  <button id="next" type="button" title="next game (N)"><svg viewBox="-10 -10 20 20" aria-hidden="true"><path d="M0 0L.31.04L.6.21L.83.52L.96.95L.95 1.47L.76 2.02L.38 2.52L-.17 2.9L-.86 3.08L-1.63 3.02L-2.39 2.68L-3.06 2.07L-3.54 1.22L-3.75.19L-3.65-.94L-3.21-2.04L-2.45-2.98L-1.42-3.65L-.2-3.96L1.11-3.86L2.38-3.33L3.46-2.4L4.22-1.15L4.57.3L4.45 1.82L3.86 3.25L2.83 4.45L1.44 5.27L-.18 5.62L-1.85 5.43L-3.43 4.72L-4.74 3.52L-5.62 1.95L-5.97.15L-5.72-1.71L-4.88-3.43L-3.52-4.84L-1.78-5.79L.17-6.16L2.15-5.9L4-5.02L5.52-3.58L6.53-1.73"/></svg>next game</button>
   <button id="mute" type="button" aria-label="Mute sound" aria-pressed="false">
     <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M5 12.6h5.2l7-6.1v19l-7-6.1H5z"/>
@@ -195,6 +329,8 @@
   </button>
 </div>
 
+<a id="addyours" href="https://github.com/stutxo/s.computer#make-your-own-s-verse" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>add your own s-verse</a>
+
 <div id="stick"><div id="knob"></div></div>
 <div id="pops"></div>
 
@@ -203,6 +339,7 @@
   <p class="big">tilt the S.</p>
   <p>grab the gold s's.</p>
   <p>don't fly out.</p>
+  <p class="hint" id="hint"></p>
   <p class="cta" id="cta">drag anywhere to start</p>
   <p class="small" id="keys" hidden>arrow keys work too</p>
 </section>
@@ -215,11 +352,22 @@
   </div>
   <p class="first big" id="reason">flew out!</p>
   <p class="first" id="tally">you got 0 s's</p>
+  <p class="small-line" id="trip"></p>
+  <p class="hint" id="found"></p>
   <p id="bestline">best: 0</p>
   <p class="teacher" id="remark">see me after class</p>
   <p class="cta" id="again">tap to try again</p>
+  <p class="small-line"><a id="make" href="https://github.com/stutxo/s.computer#make-your-own-s-verse" target="_blank" rel="noopener">make your own s-verse</a></p>
   <button id="share" type="button">share</button>
 </section>
+
+<div id="warp" aria-hidden="true"></div>
+<div id="card" aria-live="polite">
+  <div class="num" id="cardNum">s-verse #2</div>
+  <div class="name" id="cardName">S Grand Prix</div>
+  <div class="verb" id="cardVerb">race!</div>
+  <div class="by" id="cardBy"></div>
+</div>
 
 <noscript><style>#fallback { display: grid !important; }</style></noscript>
 <div id="fallback" hidden>
@@ -244,1517 +392,6 @@
   }, true);
   setTimeout(function () { if (!window.__sReady) window.__sFallback(); }, 15000);
 </script>
-
-<script type="module">
-import * as THREE from 'three';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-
-/* =====================================================================
-   s.computer — tilt the S. grab the gold s's. don't fly out.
-
-   The level IS the doodle: the 14 strokes of the Cool S are the walls.
-   Everything between SIM-START and SIM-END is plain game logic (no
-   three.js, no DOM) — the numbers at the top are the ones to tweak.
-   ===================================================================== */
-
-/*SIM-START*/
-const SU = 2;                                 // world units per grid square (the S is 2 x 5 squares)
-const BALL_R = 0.36;                          // ball radius
-const INK_R = 0.12;                           // radius of the inked lines (the walls)
-const CONTACT = 2 * Math.sqrt(BALL_R * INK_R); // ball-center distance from a line's center when touching it
-const PAPER_Y = -8;                           // height of the notebook page below the S
-const MAX_TILT = 0.24;                        // radians (~14°)
-const PHYS = {
-  G: 40,          // tilt gravity: acceleration = G * sin(tilt)
-  DAMP: 0.42,     // rolling resistance, per second
-  REST: 0.5,      // bounciness off the lines
-  HOP_V: 6.3,     // hit a line harder than this and you hop right over it
-  VMAX: 15,
-  HOP_VY: 5.2,    // hop launch speed
-  HOP_G: 30,      // gravity while hopping / dropping in
-  BOUNCE_V: 6,    // landings harder than this bounce
-  FALL_G: 24,     // gravity on the way down to the page
-  PICK: 0.62,     // how close you need to get to grab a gold s
-};
-
-const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
-// grid coords (u right, v down; the S spans u 0..2, v 0..5) -> board coords (x right, z toward you)
-const uv = (u, v) => [(u - 1) * SU, (v - 2.5) * SU];
-
-// Outer silhouette of the Cool S.
-const OUTLINE = [[1, 0], [2, 1], [2, 2], [1.5, 2.5], [2, 3], [2, 4], [1, 5], [0, 4], [0, 3], [0.5, 2.5], [0, 2], [0, 1]]
-  .map(([u, v]) => uv(u, v));
-
-// The 14 strokes, in the order everyone draws them: six verticals, two diagonals, two connectors, two tips.
-const STROKES = [
-  [[0, 1], [0, 2]], [[1, 1], [1, 2]], [[2, 1], [2, 2]],
-  [[0, 3], [0, 4]], [[1, 3], [1, 4]], [[2, 3], [2, 4]],
-  [[0, 2], [1, 3]], [[1, 2], [2, 3]],
-  [[2, 2], [1.5, 2.5]], [[0, 3], [0.5, 2.5]],
-  [[0, 1], [1, 0]], [[1, 0], [2, 1]],
-  [[0, 4], [1, 5]], [[1, 5], [2, 4]],
-].map(([a, b]) => {
-  const [ax, az] = uv(a[0], a[1]), [bx, bz] = uv(b[0], b[1]);
-  const dx = bx - ax, dz = bz - az, len2 = dx * dx + dz * dz;
-  return { ax, az, bx, bz, dx, dz, len2, len: Math.sqrt(len2) };
-});
-
-// Centerline of the one long channel the strokes make: up the right, over the top, down and across, around the bottom.
-const PATH = (() => {
-  const pts = [[1.5, 2.0], [1.5, 1.0], [1.25, 0.75], [1.0, 0.586], [0.75, 0.75], [0.5, 1.0], [0.5, 2.0], [1.5, 3.0],
-    [1.5, 4.0], [1.25, 4.25], [1.0, 4.414], [0.75, 4.25], [0.5, 4.0], [0.5, 2.85]].map(([u, v]) => uv(u, v));
-  const segs = [];
-  let len = 0;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const [ax, az] = pts[i], [bx, bz] = pts[i + 1], l = Math.hypot(bx - ax, bz - az);
-    segs.push({ ax, az, bx, bz, len: l, s0: len });
-    len += l;
-  }
-  return { pts, segs, len };
-})();
-
-const START = uv(0.5, 1.45);
-const _n = [0, 0, 0];
-
-function pointInS(x, z) {
-  let inside = false;
-  for (let i = 0, j = OUTLINE.length - 1; i < OUTLINE.length; j = i++) {
-    const xi = OUTLINE[i][0], zi = OUTLINE[i][1], xj = OUTLINE[j][0], zj = OUTLINE[j][1];
-    if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
-  }
-  return inside;
-}
-
-function nearestOnSeg(px, pz, ax, az, dx, dz, len2, out) {
-  const t = clamp(((px - ax) * dx + (pz - az) * dz) / len2, 0, 1);
-  out[0] = ax + dx * t; out[1] = az + dz * t; out[2] = t;
-  return out;
-}
-
-function wallClearance(x, z) {
-  let m = Infinity;
-  for (const w of STROKES) {
-    nearestOnSeg(x, z, w.ax, w.az, w.dx, w.dz, w.len2, _n);
-    m = Math.min(m, Math.hypot(x - _n[0], z - _n[1]));
-  }
-  return m;
-}
-
-function pathPoint(s) {
-  s = clamp(s, 0, PATH.len);
-  let g = PATH.segs[PATH.segs.length - 1];
-  for (const sg of PATH.segs) if (s <= sg.s0 + sg.len) { g = sg; break; }
-  const t = clamp((s - g.s0) / g.len, 0, 1);
-  return { x: g.ax + (g.bx - g.ax) * t, z: g.az + (g.bz - g.az) * t, tx: (g.bx - g.ax) / g.len, tz: (g.bz - g.az) / g.len };
-}
-
-function projectToPath(x, z) {
-  let bestD = Infinity, bestS = 0;
-  for (const g of PATH.segs) {
-    const dx = g.bx - g.ax, dz = g.bz - g.az;
-    nearestOnSeg(x, z, g.ax, g.az, dx, dz, g.len * g.len, _n);
-    const d = Math.hypot(x - _n[0], z - _n[1]);
-    if (d < bestD) { bestD = d; bestS = g.s0 + g.len * _n[2]; }
-  }
-  return { s: bestS, d: bestD };
-}
-
-// board-local -> world for a board rotated by Euler(a, 0, c) in three.js 'XYZ' order, i.e. Rx(a)·Rz(c)
-function l2w(a, c, x, y, z, out) {
-  const ca = Math.cos(a), sa = Math.sin(a), cc = Math.cos(c), sc = Math.sin(c);
-  const x1 = x * cc - y * sc, y1 = x * sc + y * cc;
-  out[0] = x1; out[1] = y1 * ca - z * sa; out[2] = y1 * sa + z * ca;
-  return out;
-}
-
-function makeBall() {
-  return { x: START[0], z: START[1], y: BALL_R, vx: 0, vz: 0, vy: 0, air: false };
-}
-
-// One physics step for the ball on the tilted S. Events go into `ev`.
-function stepBall(b, a, c, dt, ev) {
-  if (b.air) {
-    b.vy -= PHYS.HOP_G * dt;
-    b.x += b.vx * dt; b.z += b.vz * dt; b.y += b.vy * dt;
-    if (!pointInS(b.x, b.z)) { ev.fall = true; return; }
-    if (b.y > BALL_R) return;
-    const impact = -b.vy;
-    b.y = BALL_R;
-    ev.land = Math.max(ev.land || 0, impact);
-    if (impact > PHYS.BOUNCE_V) { b.vy = impact * 0.38; return; }
-    b.vy = 0; b.air = false;
-  }
-  // gravity along the tilted board (exact for Rx(a)·Rz(c))
-  b.vx += -PHYS.G * Math.cos(a) * Math.sin(c) * dt;
-  b.vz += PHYS.G * Math.sin(a) * dt;
-  const k = Math.exp(-PHYS.DAMP * dt);
-  b.vx *= k; b.vz *= k;
-  const sp = Math.hypot(b.vx, b.vz);
-  if (sp > PHYS.VMAX) { b.vx *= PHYS.VMAX / sp; b.vz *= PHYS.VMAX / sp; }
-  b.x += b.vx * dt; b.z += b.vz * dt;
-
-  for (let pass = 0; pass < 2; pass++) {
-    for (const w of STROKES) {
-      nearestOnSeg(b.x, b.z, w.ax, w.az, w.dx, w.dz, w.len2, _n);
-      let nx = b.x - _n[0], nz = b.z - _n[1];
-      const d = Math.hypot(nx, nz);
-      if (d >= CONTACT) continue;
-      if (d > 1e-7) { nx /= d; nz /= d; } else { nx = -w.dz / w.len; nz = w.dx / w.len; }
-      const vn = b.vx * nx + b.vz * nz;
-      if (vn < -PHYS.HOP_V) {
-        // too fast: ride up and over the line
-        b.air = true; b.vy = PHYS.HOP_VY; b.y = BALL_R + 1e-3;
-        b.vx *= 0.82; b.vz *= 0.82;
-        ev.hop = -vn;
-        return;
-      }
-      b.x = _n[0] + nx * CONTACT; b.z = _n[1] + nz * CONTACT;
-      if (vn < 0) {
-        const tx = b.vx - vn * nx, tz = b.vz - vn * nz;
-        b.vx = tx * 0.985 - vn * PHYS.REST * nx;
-        b.vz = tz * 0.985 - vn * PHYS.REST * nz;
-        if (-vn > (ev.bonk || 0)) { ev.bonk = -vn; ev.bnx = nx; ev.bnz = nz; }
-      }
-    }
-  }
-  if (!pointInS(b.x, b.z)) ev.fall = true;
-}
-
-// Ball left the S: switch to world-space free fall toward the notebook page.
-function toFall(b, a, c, by) {
-  const p = l2w(a, c, b.x, b.y, b.z, [0, 0, 0]);
-  const v = l2w(a, c, b.vx, b.air ? b.vy : 0, b.vz, [0, 0, 0]);
-  return { x: p[0], y: p[1] + by, z: p[2], vx: v[0], vy: v[1], vz: v[2], floor: false, bounces: 0, still: 0 };
-}
-
-function stepFall(f, dt, ev) {
-  f.vy -= PHYS.FALL_G * dt;
-  f.x += f.vx * dt; f.y += f.vy * dt; f.z += f.vz * dt;
-  const fy = PAPER_Y + BALL_R;
-  if (f.y <= fy) {
-    f.y = fy;
-    if (f.vy < -1.5) {
-      ev.thud = Math.max(ev.thud || 0, -f.vy);
-      f.vy = -f.vy * 0.42; f.vx *= 0.72; f.vz *= 0.72; f.bounces++;
-    } else { f.vy = 0; f.floor = true; }
-  }
-  if (f.floor) {
-    const k = Math.exp(-1.8 * dt);
-    f.vx *= k; f.vz *= k;
-    f.still = Math.hypot(f.vx, f.vz) < 0.25 ? f.still + dt : 0;
-  }
-}
-
-function makeGame(rnd = Math.random) {
-  return { score: 0, token: null, time: 0, wob: [rnd() * 6.3, rnd() * 6.3, rnd() * 6.3, rnd() * 6.3] };
-}
-
-// seconds you get to reach a gold s that is `dist` away along the channel
-function tokenTime(dist, score) {
-  const t = 2.4 + dist * (0.66 - 0.28 * clamp(score / 30, 0, 1));
-  return score < 2 ? t * 1.4 : t; // the first couple are a freebie while you figure out the controls
-}
-
-function spawnToken(game, b, rnd = Math.random) {
-  const sb = projectToPath(b.x, b.z).s;
-  const minD = Math.min(5, PATH.len * 0.3);
-  for (let tries = 0; tries < 80; tries++) {
-    const s = rnd() * PATH.len;
-    const dist = Math.abs(s - sb);
-    if (dist < minD) continue;
-    const p = pathPoint(s);
-    const off = (rnd() * 2 - 1) * 0.3;
-    const x = p.x - p.tz * off, z = p.z + p.tx * off;
-    if (!pointInS(x, z) || wallClearance(x, z) < CONTACT + 0.08) continue;
-    const T = tokenTime(dist, game.score);
-    return (game.token = { x, z, s, t: T, T, age: 0 });
-  }
-  const s = sb > PATH.len / 2 ? 0.2 : PATH.len - 0.2, p = pathPoint(s), T = tokenTime(Math.abs(s - sb), game.score);
-  return (game.token = { x: p.x, z: p.z, s, t: T, T, age: 0 });
-}
-
-function stepGame(game, b, dt, ev, rnd = Math.random) {
-  game.time += dt;
-  const tk = game.token;
-  if (!tk) return;
-  tk.age += dt; tk.t -= dt;
-  const lift = b.air ? Math.max(0, b.y - BALL_R - 0.5) : 0;
-  if (Math.hypot(b.x - tk.x, b.z - tk.z, lift) < PHYS.PICK) {
-    game.score++;
-    ev.collect = { x: tk.x, z: tk.z, score: game.score };
-    spawnToken(game, b, rnd);
-    return;
-  }
-  if (tk.t <= 0) { tk.t = 0; ev.timeout = true; }
-}
-
-// After a few points the S starts to wobble on its own.
-function wobble(game, t, out) {
-  const amp = clamp((game.score - 6) * 0.0055, 0, 0.085), p = game.wob;
-  out[0] = amp * (Math.sin(t * 1.9 + p[0]) * 0.6 + Math.sin(t * 3.1 + p[1]) * 0.4);
-  out[1] = amp * (Math.sin(t * 2.3 + p[2]) * 0.6 + Math.sin(t * 3.7 + p[3]) * 0.4);
-  return out;
-}
-
-// Out of time: the S gets bored and flicks the ball off the nearest edge.
-function flickBall(b) {
-  let bd = Infinity, px = 0, pz = 0;
-  for (let i = 0; i < OUTLINE.length; i++) {
-    const [ax, az] = OUTLINE[i], [bx, bz] = OUTLINE[(i + 1) % OUTLINE.length];
-    const dx = bx - ax, dz = bz - az;
-    nearestOnSeg(b.x, b.z, ax, az, dx, dz, dx * dx + dz * dz, _n);
-    const d = Math.hypot(b.x - _n[0], b.z - _n[1]);
-    if (d < bd) { bd = d; px = _n[0]; pz = _n[1]; }
-  }
-  let dx = px - b.x, dz = pz - b.z;
-  const L = Math.hypot(dx, dz) || 1;
-  dx /= L; dz /= L;
-  b.air = true; b.vy = 7.5; b.y = Math.max(b.y, BALL_R + 1e-3);
-  b.vx = dx * 6.5; b.vz = dz * 6.5;
-  return [dx, dz];
-}
-
-const GRADES = [
-  [0, 'F', 'see me after class'], [3, 'D', 'needs work'], [6, 'C', 'average. very average.'],
-  [10, 'B', 'solid. keep going.'], [15, 'A', 'show-off'], [22, 'A+', 'who taught you this?'], [30, 'S', 'you are the S'],
-];
-function gradeFor(score) {
-  let g = GRADES[0];
-  for (const r of GRADES) if (score >= r[0]) g = r;
-  return g;
-}
-/*SIM-END*/
-
-/* =============================== view =============================== */
-
-const $ = (id) => document.getElementById(id);
-const coarse = matchMedia('(pointer: coarse)').matches;
-const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const lowEnd = Math.min(screen.width, screen.height) < 500 || (navigator.hardwareConcurrency || 8) <= 4;
-const pick = (arr) => arr[(Math.random() * arr.length) | 0];
-const lerp = (a, b, t) => a + (b - a) * t;
-const easeOutCubic = (t) => 1 - (1 - t) ** 3;
-const easeOutBack = (t) => 1 + 2.70158 * (t - 1) ** 3 + 1.70158 * (t - 1) ** 2;
-const HAND = '"Gochi Hand", "Marker Felt", "Chalkboard SE", "Comic Sans MS", cursive';
-const ZERO2 = [0, 0];
-
-const el = {};
-for (const id of ['c', 'score', 'best', 'title', 'cta', 'keys', 'over', 'grade', 'remark', 'reason', 'tally', 'bestline', 'again', 'share', 'stick', 'knob', 'mute', 'pops']) el[id] = $(id);
-
-let best = 0;
-try { best = parseInt(localStorage.getItem('s.best') || '0', 10) || 0; } catch (_) { /* private mode */ }
-
-/* ---------- renderer, scene, light ---------- */
-
-const renderer = new THREE.WebGLRenderer({ canvas: el.c, antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-renderer.setSize(innerWidth, innerHeight, false);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.NeutralToneMapping;
-renderer.toneMappingExposure = 1.02;
-const ANISO = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-
-const DESK = 0xe8ece7;
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(DESK);
-scene.fog = new THREE.Fog(DESK, 16, 58);
-
-const camera = new THREE.PerspectiveCamera(36, innerWidth / innerHeight, 0.1, 200);
-
-{
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  pmrem.dispose();
-}
-
-scene.add(new THREE.HemisphereLight(0xffffff, 0xc3cddc, 0.9));
-const sun = new THREE.DirectionalLight(0xfff3e3, 2.3);
-sun.position.set(-6, 16, -2.5);
-sun.target.position.set(0, -3, 1);
-sun.castShadow = true;
-const SHADOW = lowEnd ? 1024 : 2048;
-sun.shadow.mapSize.set(SHADOW, SHADOW);
-const shadowCam = sun.shadow.camera;
-shadowCam.left = -11; shadowCam.right = 11; shadowCam.top = 11; shadowCam.bottom = -11;
-shadowCam.near = 1; shadowCam.far = 50;
-shadowCam.updateProjectionMatrix();
-sun.shadow.bias = -0.0004;
-sun.shadow.normalBias = 0.025;
-scene.add(sun, sun.target);
-
-/* ---------- textures ---------- */
-
-function canvasTexture(w, h, draw) {
-  const cv = document.createElement('canvas');
-  cv.width = w; cv.height = h;
-  draw(cv.getContext('2d'), w, h);
-  const t = new THREE.CanvasTexture(cv);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = ANISO;
-  return t;
-}
-
-const RULE = 0.75; // notebook rule spacing, world units
-
-const topTex = canvasTexture(128, 128, (g, w, h) => {
-  g.fillStyle = '#fcfdfa'; g.fillRect(0, 0, w, h);
-  g.fillStyle = 'rgba(118,163,222,0.5)'; g.fillRect(0, h - 4, w, 4);
-});
-topTex.wrapS = topTex.wrapT = THREE.RepeatWrapping;
-topTex.repeat.set(1 / RULE, 1 / RULE);
-
-const sideTex = canvasTexture(8, 32, (g, w, h) => {
-  g.fillStyle = '#eceee8'; g.fillRect(0, 0, w, h);
-  g.fillStyle = 'rgba(140,146,138,0.55)'; g.fillRect(0, h - 3, w, 3);
-});
-sideTex.wrapS = sideTex.wrapT = THREE.RepeatWrapping;
-sideTex.repeat.set(1, 1 / 0.055);
-
-const ballTex = canvasTexture(256, 128, (g, w, h) => {
-  g.fillStyle = '#ff4f93'; g.fillRect(0, 0, w, h);
-  g.fillStyle = '#ff86b8'; g.fillRect(0, h * 0.43, w, h * 0.14);
-  g.fillStyle = '#ffe0ec'; g.fillRect(0, h * 0.485, w, h * 0.03);
-});
-
-const INK_C = new THREE.Color(0x2335a8), RED_C = new THREE.Color(0xd7263d);
-const M = {
-  top: new THREE.MeshStandardMaterial({ map: topTex, roughness: 0.9, envMapIntensity: 0.4 }),
-  side: new THREE.MeshStandardMaterial({ map: sideTex, roughness: 0.95, envMapIntensity: 0.3 }),
-  ink: new THREE.MeshPhysicalMaterial({ color: 0x2335a8, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.12, envMapIntensity: 0.9 }),
-  ball: new THREE.MeshPhysicalMaterial({ map: ballTex, roughness: 0.3, clearcoat: 0.9, clearcoatRoughness: 0.15, envMapIntensity: 0.8, emissive: 0xff2200, emissiveIntensity: 0 }),
-  gold: new THREE.MeshStandardMaterial({ color: 0xffc21a, metalness: 1, roughness: 0.22, envMapIntensity: 1.5 }),
-  goldDark: new THREE.MeshStandardMaterial({ color: 0x8a5a00, metalness: 0.7, roughness: 0.45 }),
-  eye: new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.15, clearcoat: 1, clearcoatRoughness: 0.05 }),
-  pupil: new THREE.MeshStandardMaterial({ color: 0x15151f, roughness: 0.3 }),
-  mouth: new THREE.MeshStandardMaterial({ color: 0x4d0a2b, roughness: 0.5 }),
-  hi: new THREE.MeshBasicMaterial({ color: 0xfff04a, transparent: true, opacity: 0.6, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
-  track: new THREE.MeshBasicMaterial({ color: 0x2335a8, transparent: true, opacity: 0.14, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
-  ring: new THREE.MeshBasicMaterial({ color: 0x2335a8, transparent: true, opacity: 0.9, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }),
-};
-M.corpse = M.ball.clone();
-
-/* ---------- the notebook page ---------- */
-
-const PAGE = 64;
-const pageCv = document.createElement('canvas');
-pageCv.width = pageCv.height = lowEnd ? 1536 : 2048;
-const pageTex = new THREE.CanvasTexture(pageCv);
-pageTex.colorSpace = THREE.SRGBColorSpace;
-pageTex.anisotropy = ANISO;
-drawPage();
-const page = new THREE.Mesh(new THREE.PlaneGeometry(PAGE, PAGE), new THREE.MeshStandardMaterial({ map: pageTex, roughness: 0.95, envMapIntensity: 0.3 }));
-page.rotation.x = -Math.PI / 2;
-page.position.y = PAPER_Y;
-page.receiveShadow = true;
-scene.add(page);
-if (document.fonts && document.fonts.load) {
-  document.fonts.load('40px "Gochi Hand"').then(() => { drawPage(); pageTex.needsUpdate = true; }).catch(() => {});
-}
-
-function drawPage() {
-  const g = pageCv.getContext('2d');
-  const W = pageCv.width, u = W / PAGE;
-  const X = (x) => (x + PAGE / 2) * u, Z = (z) => (z + PAGE / 2) * u;
-  let seed = 1234567;
-  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
-  g.setTransform(1, 0, 0, 1, 0, 0);
-  g.fillStyle = '#f5f7f2'; g.fillRect(0, 0, W, W);
-  for (let i = 0; i < 2600; i++) {
-    g.fillStyle = `rgba(90,100,120,${(0.012 + rnd() * 0.025).toFixed(3)})`;
-    g.fillRect(rnd() * W, rnd() * W, 1 + rnd() * 2.5, 1 + rnd() * 2.5);
-  }
-  const lw = Math.max(1.5, u * 0.05);
-  g.fillStyle = 'rgba(118,163,222,0.72)';
-  for (let z = -PAGE / 2 + RULE * 2; z < PAGE / 2; z += RULE) g.fillRect(0, Z(z) - lw / 2, W, lw);
-  const mw = Math.max(2, u * 0.065);
-  g.fillStyle = 'rgba(234,104,118,0.82)';
-  g.fillRect(X(-7.4) - mw / 2, 0, mw, W);
-  for (const hz of [-12, 0, 12]) {
-    g.beginPath(); g.arc(X(-9.7), Z(hz), 0.42 * u, 0, Math.PI * 2);
-    g.fillStyle = '#d3d8d1'; g.fill();
-    g.lineWidth = u * 0.05; g.strokeStyle = 'rgba(60,70,80,0.12)'; g.stroke();
-  }
-
-  // ballpoint doodles
-  const INKS = 'rgba(35,53,168,0.85)';
-  g.strokeStyle = INKS; g.fillStyle = INKS;
-  g.lineCap = 'round'; g.lineJoin = 'round';
-  g.lineWidth = Math.max(1.6, u * 0.06);
-  const J = u * 0.05;
-  const L = (pts, j = 1) => {
-    g.beginPath();
-    pts.forEach(([x, z], i) => {
-      const px = X(x) + (rnd() - 0.5) * J * j, py = Z(z) + (rnd() - 0.5) * J * j;
-      if (i) g.lineTo(px, py); else g.moveTo(px, py);
-    });
-    g.stroke();
-  };
-  const arc = (x, z, r, a0, a1, n = 36) => {
-    const p = [];
-    for (let i = 0; i <= n; i++) { const a = a0 + ((a1 - a0) * i) / n; p.push([x + Math.cos(a) * r, z + Math.sin(a) * r]); }
-    L(p, 0.4);
-  };
-  const star = (x, z, r) => {
-    const p = [];
-    for (let i = 0; i <= 5; i++) { const a = -Math.PI / 2 + (i * 4 * Math.PI) / 5; p.push([x + Math.cos(a) * r, z + Math.sin(a) * r]); }
-    L(p);
-  };
-  const heart = (x, z, r) => {
-    const p = [];
-    for (let i = 0; i <= 48; i++) {
-      const t = (i / 48) * Math.PI * 2;
-      p.push([x + (16 * Math.sin(t) ** 3 * r) / 17, z - ((13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * r) / 17]);
-    }
-    L(p, 0.3);
-  };
-  const spiral = (x, z, r) => {
-    const p = [];
-    for (let i = 0; i <= 160; i++) { const t = i / 160, a = t * Math.PI * 7; p.push([x + Math.cos(a) * r * t, z + Math.sin(a) * r * t]); }
-    L(p, 0.2);
-  };
-  const smiley = (x, z, r) => {
-    arc(x, z, r, 0, Math.PI * 2.06, 44);
-    L([[x - r * 0.33, z - r * 0.38], [x - r * 0.33, z - r * 0.12]]);
-    L([[x + r * 0.33, z - r * 0.38], [x + r * 0.33, z - r * 0.12]]);
-    arc(x, z + r * 0.02, r * 0.55, Math.PI * 0.18, Math.PI * 0.82, 16);
-  };
-  const cube = (x, z, s) => {
-    const o = s * 0.45;
-    L([[x, z], [x + s, z], [x + s, z + s], [x, z + s], [x, z]]);
-    L([[x + o, z - o], [x + s + o, z - o], [x + s + o, z + s - o], [x + o, z + s - o], [x + o, z - o]]);
-    L([[x, z], [x + o, z - o]]); L([[x + s, z], [x + s + o, z - o]]);
-    L([[x + s, z + s], [x + s + o, z + s - o]]); L([[x, z + s], [x + o, z + s - o]]);
-  };
-  const bolt = (x, z, s) => L([[x + s * 0.3, z - s], [x - s * 0.35, z + s * 0.08], [x + s * 0.12, z + s * 0.08], [x - s * 0.3, z + s],
-    [x + s * 0.55, z - s * 0.22], [x + s * 0.02, z - s * 0.22], [x + s * 0.3, z - s]]);
-  const ttt = (x, z, s) => {
-    const a = s / 6, b = s / 2;
-    L([[x - a, z - b], [x - a, z + b]]); L([[x + a, z - b], [x + a, z + b]]);
-    L([[x - b, z - a], [x + b, z - a]]); L([[x - b, z + a], [x + b, z + a]]);
-    const cross = (cx, cz) => { L([[cx - a * 0.6, cz - a * 0.6], [cx + a * 0.6, cz + a * 0.6]]); L([[cx + a * 0.6, cz - a * 0.6], [cx - a * 0.6, cz + a * 0.6]]); };
-    cross(x - 2 * a, z - 2 * a); cross(x, z); cross(x + 2 * a, z + 2 * a);
-    arc(x + 2 * a, z - 2 * a, a * 0.62, 0, Math.PI * 2.1, 20);
-    arc(x - 2 * a, z + 2 * a, a * 0.62, 0, Math.PI * 2.1, 20);
-    L([[x - b - 0.2, z - b - 0.2], [x + b + 0.2, z + b + 0.2]], 0.5);
-  };
-  const coolS = (x, z, k) => {
-    for (const w of STROKES) L([[x + (w.ax / SU) * k, z + (w.az / SU) * k], [x + (w.bx / SU) * k, z + (w.bz / SU) * k]], 0.3);
-  };
-  const flower = (x, z, r) => {
-    for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; arc(x + Math.cos(a) * r * 0.55, z + Math.sin(a) * r * 0.55, r * 0.36, 0, Math.PI * 2, 18); }
-    arc(x, z, r * 0.22, 0, Math.PI * 2, 14);
-    L([[x, z + r * 0.9], [x + r * 0.15, z + r * 1.8], [x - r * 0.1, z + r * 2.6]], 0.3);
-  };
-  const cloud = (x, z, r) => {
-    arc(x - r * 0.6, z, r * 0.45, Math.PI * 0.5, Math.PI * 1.55, 16);
-    arc(x - r * 0.1, z - r * 0.35, r * 0.55, Math.PI * 1.05, Math.PI * 1.95, 18);
-    arc(x + r * 0.55, z - r * 0.05, r * 0.45, Math.PI * 1.3, Math.PI * 2.45, 16);
-    L([[x - r * 0.6, z + r * 0.45], [x + r * 0.62, z + r * 0.42]], 0.5);
-  };
-  const text = (str, x, z, size, rot = 0) => {
-    g.save(); g.translate(X(x), Z(z)); g.rotate(rot);
-    g.font = `${Math.round(size * u)}px ${HAND}`;
-    g.fillText(str, 0, 0);
-    g.restore();
-  };
-  const arrow = (x1, z1, x2, z2) => {
-    const mx = (x1 + x2) / 2 + 0.25, mz = (z1 + z2) / 2 - 0.3;
-    L([[x1, z1], [mx, mz], [x2, z2]], 0.3);
-    const a = Math.atan2(z2 - mz, x2 - mx), h = 0.5;
-    L([[x2 - Math.cos(a - 0.5) * h, z2 - Math.sin(a - 0.5) * h], [x2, z2], [x2 - Math.cos(a + 0.5) * h, z2 - Math.sin(a + 0.5) * h]]);
-  };
-  const highlight = (x, z, w, h, col) => {
-    g.save(); g.fillStyle = col; g.translate(X(x), Z(z)); g.rotate(-0.03);
-    g.fillRect(0, -h * u * 0.75, w * u, h * u);
-    g.restore();
-  };
-
-  // big ones (desktop margins)
-  star(-8.8, -7.5, 1.0); heart(8.8, -7.2, 0.9); spiral(-10.5, 3.2, 1.05); smiley(10, 3.6, 1.0);
-  cube(-6.9, 8.6, 1.1); bolt(6.6, 10.6, 0.9); ttt(12.2, -2.2, 1.5); coolS(-12.8, -3.6, 0.55);
-  flower(12.4, 9.0, 0.9); cloud(-5.4, -12.4, 1.2); star(7.2, -13, 0.6); heart(-12.6, 8.8, 0.6);
-  highlight(-13.5, 14.7, 4.7, 0.78, 'rgba(255,240,74,0.55)');
-  g.fillStyle = INKS;
-  text('lol', 5.6, -10.4, 0.95, -0.2);
-  text('math is hard', -13.3, 14.7, 0.78, -0.03);
-  text('s + s 4ever', 8.4, 14.4, 0.72, -0.07);
-  text("it's alive!!", 5.3, -0.8, 0.66, -0.1);
-  arrow(5.0, -1.5, 3.2, -2.9);
-  // little ones that peek out beside the S on phones
-  star(3.75, -7.4, 0.32); heart(-3.8, -5.4, 0.3); star(-3.7, -0.9, 0.28); spiral(3.85, 1.2, 0.32); heart(3.7, -4.2, 0.22);
-  // pencil scribble
-  g.strokeStyle = 'rgba(70,74,84,0.32)'; g.lineWidth = Math.max(1.2, u * 0.045);
-  const zz = [];
-  for (let i = 0; i < 22; i++) zz.push([-14.6 + i * 0.12, -8.4 + (i % 2 ? 0.9 : 0)]);
-  L(zz, 0.4);
-}
-
-/* ---------- the S ---------- */
-
-const board = new THREE.Group();
-scene.add(board);
-
-const sShape = new THREE.Shape();
-OUTLINE.forEach(([x, z], i) => (i ? sShape.lineTo(x, -z) : sShape.moveTo(x, -z)));
-const SLAB_D = 0.48, BEV = 0.07;
-const slabGeo = new THREE.ExtrudeGeometry(sShape, { depth: SLAB_D, bevelEnabled: true, bevelThickness: BEV, bevelSize: BEV, bevelSegments: 3, curveSegments: 1 });
-slabGeo.rotateX(-Math.PI / 2);
-slabGeo.translate(0, -(SLAB_D + BEV), 0); // top face at y = 0
-const slab = new THREE.Mesh(slabGeo, [M.top, M.side]);
-slab.castShadow = true;
-slab.receiveShadow = true;
-slab.visible = false;
-board.add(slab);
-
-// the 14 inked strokes: a cylinder + two round caps each, instanced so they can "draw" themselves
-const inkCyl = new THREE.InstancedMesh(new THREE.CylinderGeometry(INK_R, INK_R, 1, 16, 1, true), M.ink, STROKES.length);
-const inkCap = new THREE.InstancedMesh(new THREE.SphereGeometry(INK_R, 16, 12), M.ink, STROKES.length * 2);
-for (const m of [inkCyl, inkCap]) { m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false; board.add(m); }
-
-const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _d = new THREE.Vector3();
-const Y_UP = new THREE.Vector3(0, 1, 0), Z_FWD = new THREE.Vector3(0, 0, 1), ONE = new THREE.Vector3(1, 1, 1), Q_ID = new THREE.Quaternion();
-const ZERO_M = new THREE.Matrix4().makeScale(0, 0, 0);
-
-function setStroke(i, prog) {
-  const w = STROKES[i];
-  if (prog <= 0) {
-    inkCyl.setMatrixAt(i, ZERO_M); inkCap.setMatrixAt(2 * i, ZERO_M); inkCap.setMatrixAt(2 * i + 1, ZERO_M);
-  } else {
-    const ex = w.ax + w.dx * prog, ez = w.az + w.dz * prog;
-    _d.set(w.dx, 0, w.dz).normalize();
-    _q.setFromUnitVectors(Y_UP, _d);
-    _p.set((w.ax + ex) / 2, INK_R, (w.az + ez) / 2);
-    _s.set(1, Math.max(w.len * prog, 1e-4), 1);
-    inkCyl.setMatrixAt(i, _m4.compose(_p, _q, _s));
-    inkCap.setMatrixAt(2 * i, _m4.compose(_p.set(w.ax, INK_R, w.az), Q_ID, ONE));
-    inkCap.setMatrixAt(2 * i + 1, _m4.compose(_p.set(ex, INK_R, ez), Q_ID, ONE));
-  }
-  inkCyl.instanceMatrix.needsUpdate = true;
-  inkCap.instanceMatrix.needsUpdate = true;
-}
-for (let i = 0; i < STROKES.length; i++) setStroke(i, 0);
-
-/* ---------- gold s token ---------- */
-
-const MINI = 0.095;
-const miniShape = new THREE.Shape();
-OUTLINE.forEach(([x, z], i) => (i ? miniShape.lineTo(x * MINI, -z * MINI) : miniShape.moveTo(x * MINI, -z * MINI)));
-const miniGeo = new THREE.ExtrudeGeometry(miniShape, { depth: 0.08, bevelEnabled: true, bevelThickness: 0.025, bevelSize: 0.02, bevelSegments: 2, curveSegments: 1 });
-miniGeo.center();
-
-const tokenRoot = new THREE.Group();
-tokenRoot.visible = false;
-board.add(tokenRoot);
-const tokenSpin = new THREE.Group();
-tokenRoot.add(tokenSpin);
-const mini = new THREE.Mesh(miniGeo, M.gold);
-mini.castShadow = true;
-tokenSpin.add(mini);
-for (const [a, b] of [[[1, 1], [1, 2]], [[1, 2], [1.5, 2.5]], [[0.5, 2.5], [1, 3]], [[1, 3], [1, 4]]]) {
-  const [ax, az] = uv(a[0], a[1]), [bx, bz] = uv(b[0], b[1]);
-  const x0 = ax * MINI, y0 = -az * MINI, x1 = bx * MINI, y1 = -bz * MINI;
-  const bar = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(x1 - x0, y1 - y0) + 0.02, 0.024, 0.142), M.goldDark);
-  bar.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0);
-  bar.rotation.z = Math.atan2(y1 - y0, x1 - x0);
-  tokenSpin.add(bar);
-}
-const hiDot = new THREE.Mesh(new THREE.CircleGeometry(0.5, 40).rotateX(-Math.PI / 2), M.hi);
-hiDot.position.y = 0.004; hiDot.renderOrder = 1;
-const RING_SEG = 64;
-const track = new THREE.Mesh(new THREE.RingGeometry(0.56, 0.66, RING_SEG, 1, Math.PI / 2, Math.PI * 2).rotateX(-Math.PI / 2), M.track);
-track.position.y = 0.008; track.renderOrder = 2;
-const ringGeo = new THREE.RingGeometry(0.56, 0.66, RING_SEG, 1, Math.PI / 2, Math.PI * 2).rotateX(-Math.PI / 2);
-const ring = new THREE.Mesh(ringGeo, M.ring);
-ring.position.y = 0.01; ring.renderOrder = 3;
-tokenRoot.add(hiDot, track, ring);
-
-/* ---------- the ball (with googly eyes) ---------- */
-
-const ballRoot = new THREE.Group();
-ballRoot.visible = false;
-scene.add(ballRoot);
-const squash = new THREE.Group();
-ballRoot.add(squash);
-const body = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 48, 32), M.ball);
-body.castShadow = true;
-squash.add(body);
-const face = new THREE.Group();
-face.up.set(0, 0, -1); // face "up" = toward the top of the screen
-squash.add(face);
-
-const EYE_R = 0.115, PUPIL_R = 0.058, PUPIL_MAX = EYE_R - PUPIL_R - 0.005;
-const eyeGeo = new THREE.SphereGeometry(EYE_R, 24, 16);
-const pupilGeo = new THREE.SphereGeometry(PUPIL_R, 16, 12);
-const eyes = [-1, 1].map((side) => {
-  const dir = new THREE.Vector3(0.37 * side, 0.26, 1).normalize();
-  const g = new THREE.Group();
-  g.position.copy(dir).multiplyScalar(BALL_R * 0.97);
-  g.quaternion.setFromUnitVectors(Z_FWD, dir);
-  const white = new THREE.Mesh(eyeGeo, M.eye);
-  white.scale.set(1, 1, 0.55);
-  white.castShadow = true;
-  const pupil = new THREE.Mesh(pupilGeo, M.pupil);
-  pupil.scale.set(1, 1, 0.35);
-  pupil.position.z = EYE_R * 0.55;
-  g.add(white, pupil);
-  face.add(g);
-  return { g, pupil, side, px: 0, py: -0.02, vx: 0, vy: 0 };
-});
-const mouthDir = new THREE.Vector3(0, -0.34, 1).normalize();
-const smile = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.021, 8, 24, Math.PI), M.mouth);
-smile.position.copy(mouthDir).multiplyScalar(BALL_R * 0.99);
-smile.quaternion.setFromUnitVectors(Z_FWD, mouthDir);
-smile.rotateZ(Math.PI);
-const ooh = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.022, 8, 24), M.mouth);
-ooh.position.copy(smile.position);
-ooh.quaternion.copy(smile.quaternion);
-ooh.visible = false;
-face.add(smile, ooh);
-
-/* ---------- props: the pen that draws the S, a pencil on the page ---------- */
-
-const penMetal = new THREE.MeshStandardMaterial({ color: 0xcfd4dc, metalness: 1, roughness: 0.25 });
-const pen = new THREE.Group();
-{
-  const clearPlastic = new THREE.MeshPhysicalMaterial({ color: 0xe9f1ff, roughness: 0.08, transparent: true, opacity: 0.5, clearcoat: 1, depthWrite: false });
-  const bic = new THREE.MeshStandardMaterial({ color: 0x1f3fbf, roughness: 0.4 });
-  const tilted = new THREE.Group();
-  tilted.rotation.set(0.42, 0, -0.38);
-  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.12, 12), penMetal);
-  tip.rotation.x = Math.PI; tip.position.y = 0.06;
-  const cone = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.34, 6), clearPlastic);
-  cone.rotation.x = Math.PI; cone.position.y = 0.29;
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 2.5, 6), clearPlastic);
-  barrel.position.y = 1.71;
-  const refill = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.55, 8), bic);
-  refill.position.y = 1.475;
-  const plug = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.16, 12), bic);
-  plug.position.y = 3.0;
-  tilted.add(tip, refill, cone, barrel, plug);
-  pen.add(tilted);
-  pen.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-}
-pen.visible = false;
-scene.add(pen);
-
-{
-  const pencil = new THREE.Group();
-  const len = 4.2, r = 0.16;
-  const yellow = new THREE.MeshStandardMaterial({ color: 0xf6c21c, roughness: 0.5 });
-  const wood = new THREE.MeshStandardMaterial({ color: 0xe7c49a, roughness: 0.8 });
-  const lead = new THREE.MeshStandardMaterial({ color: 0x3b3d44, roughness: 0.4, metalness: 0.3 });
-  const eraser = new THREE.MeshStandardMaterial({ color: 0xf29bb0, roughness: 0.7 });
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 6), yellow);
-  const sharpened = new THREE.Mesh(new THREE.ConeGeometry(r, 0.55, 6), wood);
-  sharpened.position.y = len / 2 + 0.275;
-  const point = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.18, 10), lead);
-  point.position.y = len / 2 + 0.55 - 0.09;
-  const ferrule = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.03, r * 1.03, 0.32, 16), penMetal);
-  ferrule.position.y = -len / 2 - 0.16;
-  const rubber = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.98, r * 0.98, 0.36, 16), eraser);
-  rubber.position.y = -len / 2 - 0.5;
-  pencil.add(barrel, sharpened, point, ferrule, rubber);
-  pencil.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-  pencil.rotation.set(0, 0.55, Math.PI / 2);
-  pencil.position.set(-6.6, PAPER_Y + r * 0.87, 4.6);
-  scene.add(pencil);
-}
-
-/* ---------- confetti / sparks ---------- */
-
-const PN = 320;
-const P = {
-  life: new Float32Array(PN), max: new Float32Array(PN), pos: new Float32Array(PN * 3), vel: new Float32Array(PN * 3),
-  axis: new Float32Array(PN * 3), ang: new Float32Array(PN), spin: new Float32Array(PN), size: new Float32Array(PN),
-  grav: new Float32Array(PN), drag: new Float32Array(PN), next: 0, colorDirty: false, live: 0,
-};
-const parts = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.1, side: THREE.DoubleSide }), PN);
-parts.frustumCulled = false;
-const _pc = new THREE.Color(0xffffff);
-for (let i = 0; i < PN; i++) { parts.setMatrixAt(i, ZERO_M); parts.setColorAt(i, _pc); }
-scene.add(parts);
-const GOLDS = [0xffc21a, 0xffe27a, 0xfff04a, 0xffffff];
-const CONFETTI = [0xff4f93, 0xfff04a, 0x5fd3ff, 0x7dff8a, 0xffc21a, 0xb98cff, 0x2335a8];
-
-function spawnP(x, y, z, vx, vy, vz, color, size, life, grav, drag) {
-  const i = P.next;
-  P.next = (P.next + 1) % PN;
-  const j = i * 3;
-  P.pos[j] = x; P.pos[j + 1] = y; P.pos[j + 2] = z;
-  P.vel[j] = vx; P.vel[j + 1] = vy; P.vel[j + 2] = vz;
-  _d.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
-  P.axis[j] = _d.x; P.axis[j + 1] = _d.y; P.axis[j + 2] = _d.z;
-  P.ang[i] = Math.random() * 6.28; P.spin[i] = 4 + Math.random() * 10;
-  P.size[i] = size; P.life[i] = P.max[i] = life; P.grav[i] = grav; P.drag[i] = drag;
-  parts.setColorAt(i, _pc.set(color));
-  P.colorDirty = true;
-}
-
-function burst(x, y, z, n, colors, speed, up, size, life, grav) {
-  for (let k = 0; k < n; k++) {
-    const a = Math.random() * Math.PI * 2, s = speed * (0.4 + Math.random() * 0.6);
-    spawnP(x, y, z, Math.cos(a) * s, up * (0.5 + Math.random() * 0.7), Math.sin(a) * s, pick(colors), size * (0.7 + Math.random() * 0.6), life * (0.7 + Math.random() * 0.5), grav, 1.2);
-  }
-}
-
-const _pq = new THREE.Quaternion(), _pa = new THREE.Vector3(), _pp = new THREE.Vector3(), _ps = new THREE.Vector3();
-function updateParticles(dt) {
-  let live = 0;
-  for (let i = 0; i < PN; i++) {
-    if (P.life[i] <= 0) continue;
-    P.life[i] -= dt;
-    if (P.life[i] <= 0) { parts.setMatrixAt(i, ZERO_M); continue; }
-    live++;
-    const j = i * 3, k = Math.exp(-P.drag[i] * dt);
-    P.vel[j + 1] -= P.grav[i] * dt;
-    P.vel[j] *= k; P.vel[j + 1] *= k; P.vel[j + 2] *= k;
-    P.pos[j] += P.vel[j] * dt; P.pos[j + 1] += P.vel[j + 1] * dt; P.pos[j + 2] += P.vel[j + 2] * dt;
-    if (P.pos[j + 1] < PAPER_Y + 0.02) { P.pos[j + 1] = PAPER_Y + 0.02; P.vel[j] = P.vel[j + 1] = P.vel[j + 2] = 0; P.spin[i] = 0; }
-    P.ang[i] += P.spin[i] * dt;
-    const s = P.size[i] * Math.min(1, (P.life[i] / P.max[i]) * 4);
-    _pa.set(P.axis[j], P.axis[j + 1], P.axis[j + 2]);
-    _pq.setFromAxisAngle(_pa, P.ang[i]);
-    parts.setMatrixAt(i, _m4.compose(_pp.set(P.pos[j], P.pos[j + 1], P.pos[j + 2]), _pq, _ps.set(s, s, s)));
-  }
-  if (live || P.live) parts.instanceMatrix.needsUpdate = true;
-  P.live = live;
-  if (P.colorDirty) { parts.instanceColor.needsUpdate = true; P.colorDirty = false; }
-}
-
-/* ---------- camera framing: fit the whole S on any screen ---------- */
-
-const probe = document.createElement('div');
-probe.style.cssText = 'position:fixed;left:0;top:0;height:env(safe-area-inset-top,0px);width:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none';
-document.body.appendChild(probe);
-
-const FIT_PTS = [];
-for (const [x, z] of OUTLINE) {
-  const l = Math.hypot(x, z) || 1, k = (l + 0.45) / l;
-  for (const y of [-0.75, 0.6]) FIT_PTS.push(new THREE.Vector3(x * k, y, z * k));
-}
-for (const z of [-5.5, 5.5]) for (const y of [-1.3, 1.3]) FIT_PTS.push(new THREE.Vector3(0, y, z));
-
-const fit = { target: new THREE.Vector3(), dir: new THREE.Vector3(0, 1, 0), dist: 20 };
-const _fv = new THREE.Vector3();
-function placeCam(dist) {
-  camera.position.copy(fit.target).addScaledVector(fit.dir, dist);
-  camera.lookAt(fit.target);
-  camera.updateMatrixWorld();
-}
-function fitBounds() {
-  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-  for (const p of FIT_PTS) {
-    _fv.copy(p).applyMatrix4(camera.matrixWorldInverse);
-    if (_fv.z > -camera.near) return null; // behind the camera: too close
-    _fv.copy(p).project(camera);
-    x0 = Math.min(x0, _fv.x); x1 = Math.max(x1, _fv.x); y0 = Math.min(y0, _fv.y); y1 = Math.max(y1, _fv.y);
-  }
-  return { x0, x1, y0, y1 };
-}
-function fitCamera() {
-  const w = innerWidth, h = innerHeight, aspect = w / h;
-  camera.aspect = aspect;
-  camera.fov = aspect < 0.8 ? 40 : 34;
-  camera.updateProjectionMatrix();
-  const pitch = THREE.MathUtils.degToRad(aspect < 0.7 ? 66 : aspect < 1.1 ? 61 : 55);
-  fit.dir.set(0, Math.sin(pitch), Math.cos(pitch));
-  const camUp = new THREE.Vector3(0, Math.cos(pitch), -Math.sin(pitch));
-  const ins = probe.getBoundingClientRect();
-  const topPx = (w >= 900 ? 96 : 86) + ins.height, botPx = 16 + ins.width;
-  const yTop = 1 - (2 * topPx) / h, yBot = -1 + (2 * botPx) / h, xLim = 1 - (2 * 12) / w;
-  fit.target.set(0, 0, 0);
-  for (let it = 0; it < 4; it++) {
-    let lo = 3, hi = 160;
-    for (let k = 0; k < 32; k++) {
-      const mid = (lo + hi) / 2;
-      placeCam(mid);
-      const b = fitBounds();
-      if (b && b.x1 - b.x0 <= 2 * xLim && b.y1 - b.y0 <= yTop - yBot) hi = mid; else lo = mid;
-    }
-    fit.dist = hi;
-    placeCam(fit.dist);
-    const b = fitBounds();
-    if (!b) break;
-    const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * fit.dist;
-    fit.target.addScaledVector(camUp, ((b.y0 + b.y1) / 2 - (yTop + yBot) / 2) * halfH);
-  }
-}
-
-/* ---------- sound: all synthesized, no files ---------- */
-
-const audio = (() => {
-  let ctx = null, master = null, rollGain = null, rollFilter = null, noiseBuf = null, muted = false;
-  try { muted = localStorage.getItem('s.muted') === '1'; } catch (_) { /* ignore */ }
-  const VOL = 0.7;
-  function init() {
-    if (ctx) { if (ctx.state === 'suspended') ctx.resume().catch(() => {}); return; }
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    try {
-      ctx = new AC();
-      master = ctx.createGain();
-      master.gain.value = muted ? 0 : VOL;
-      master.connect(ctx.destination);
-      noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
-      const d = noiseBuf.getChannelData(0);
-      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      const src = ctx.createBufferSource();
-      src.buffer = noiseBuf; src.loop = true;
-      rollFilter = ctx.createBiquadFilter(); rollFilter.type = 'lowpass'; rollFilter.frequency.value = 300; rollFilter.Q.value = 0.7;
-      rollGain = ctx.createGain(); rollGain.gain.value = 0;
-      src.connect(rollFilter); rollFilter.connect(rollGain); rollGain.connect(master);
-      src.start();
-      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-    } catch (_) { ctx = null; }
-  }
-  function tone(f0, f1, dur, { type = 'sine', vol = 0.25, delay = 0, attack = 0.004, vib = 0, vibRate = 7 } = {}) {
-    if (!ctx || muted || ctx.state !== 'running') return;
-    const t0 = ctx.currentTime + delay;
-    const o = ctx.createOscillator();
-    o.type = type;
-    o.frequency.setValueAtTime(f0, t0);
-    if (f1 && f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(vol, t0 + attack);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    o.connect(g); g.connect(master);
-    if (vib) {
-      const lfo = ctx.createOscillator(), lg = ctx.createGain();
-      lfo.frequency.value = vibRate; lg.gain.value = vib;
-      lfo.connect(lg); lg.connect(o.frequency);
-      lfo.start(t0); lfo.stop(t0 + dur + 0.05);
-    }
-    o.start(t0); o.stop(t0 + dur + 0.05);
-  }
-  function noise(dur, { vol = 0.2, freq = 1200, q = 1, type = 'bandpass', delay = 0 } = {}) {
-    if (!ctx || muted || ctx.state !== 'running') return;
-    const t0 = ctx.currentTime + delay;
-    const src = ctx.createBufferSource();
-    src.buffer = noiseBuf;
-    const f = ctx.createBiquadFilter();
-    f.type = type; f.frequency.value = freq; f.Q.value = q;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(vol, t0);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    src.connect(f); f.connect(g); g.connect(master);
-    src.start(t0, Math.random() * 0.5);
-    src.stop(t0 + dur + 0.02);
-  }
-  return {
-    init,
-    get muted() { return muted; },
-    setMuted(m) {
-      muted = m;
-      try { localStorage.setItem('s.muted', m ? '1' : '0'); } catch (_) { /* ignore */ }
-      if (master) master.gain.setTargetAtTime(m ? 0 : VOL, ctx.currentTime, 0.02);
-    },
-    collect(n) {
-      const f = 660 * Math.pow(2, Math.min(n, 24) / 24);
-      tone(f, f, 0.12, { type: 'triangle', vol: 0.22 });
-      tone(f * 1.5, f * 1.5, 0.2, { type: 'triangle', vol: 0.2, delay: 0.07 });
-      tone(f * 3, f * 3, 0.12, { vol: 0.05, delay: 0.07 });
-    },
-    bonk(s) {
-      const v = Math.min(1, s / 7);
-      tone(210 + v * 70, 70, 0.12, { vol: 0.07 + v * 0.22 });
-      noise(0.03, { vol: 0.04 + v * 0.1, freq: 1800, q: 0.8 });
-    },
-    hop() { tone(260, 820, 0.22, { type: 'triangle', vol: 0.2, vib: 40, vibRate: 18 }); },
-    boing() { tone(180, 520, 0.3, { type: 'triangle', vol: 0.22, vib: 60, vibRate: 22 }); },
-    whistle() { tone(1500, 240, 1.3, { vol: 0.15, vib: 22, vibRate: 7 }); },
-    thud(s) {
-      const v = Math.min(1, s / 12);
-      tone(140, 55, 0.16, { vol: 0.1 + v * 0.25 });
-      noise(0.05, { vol: 0.05 + v * 0.1, freq: 600, q: 0.7 });
-    },
-    tick() { tone(1900, 1900, 0.025, { type: 'square', vol: 0.03 }); },
-    sad() { [392, 370, 349, 330].forEach((f, i) => tone(f, f * 0.97, i === 3 ? 0.8 : 0.28, { type: 'sawtooth', vol: 0.055, delay: 0.15 + i * 0.3, vib: i === 3 ? 7 : 0, vibRate: 5 })); },
-    tada() { [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.24, { type: 'triangle', vol: 0.15, delay: i * 0.08 })); },
-    roll(speed) {
-      if (!ctx || !rollGain) return;
-      const t = ctx.currentTime;
-      rollGain.gain.setTargetAtTime(muted ? 0 : Math.min(0.09, speed * 0.011), t, 0.05);
-      rollFilter.frequency.setTargetAtTime(180 + speed * 70, t, 0.05);
-    },
-  };
-})();
-
-const haptic = (ms) => { if (navigator.vibrate && !audio.muted) { try { navigator.vibrate(ms); } catch (_) { /* ignore */ } } };
-
-/* ---------- input: drag anywhere (floating joystick), or arrow keys ---------- */
-
-const input = { active: false, id: -1, ox: 0, oy: 0, nx: 0, ny: 0 };
-const keys = { l: 0, r: 0, u: 0, d: 0 };
-let stickR = 70;
-
-function readInput() {
-  let x = input.nx, y = input.ny;
-  if (!input.active) { x = keys.r - keys.l; y = keys.d - keys.u; }
-  let m = Math.hypot(x, y);
-  if (m > 1) { x /= m; y /= m; m = 1; }
-  if (m < 0.05) return ZERO2;
-  const k = (m - 0.05) / 0.95 / m;
-  return [x * k, y * k];
-}
-function showStick() {
-  el.stick.style.setProperty('--r2', `${stickR * 2}px`);
-  el.stick.classList.add('on');
-  moveStick();
-}
-function moveStick() {
-  el.stick.style.transform = `translate(${input.ox}px, ${input.oy}px)`;
-  el.knob.style.transform = `translate(${input.nx * stickR}px, ${input.ny * stickR}px)`;
-}
-function releaseStick(e) {
-  if (e && e.pointerId !== undefined && e.pointerId !== input.id) return;
-  input.active = false; input.nx = input.ny = 0; input.id = -1;
-  el.stick.classList.remove('on');
-}
-
-window.addEventListener('pointerdown', (e) => {
-  if (e.target && e.target.closest && e.target.closest('#mute, #share')) return;
-  if (e.pointerType === 'mouse' && e.button !== 0) return;
-  e.preventDefault();
-  onPress();
-  if (input.active) return;
-  input.active = true; input.id = e.pointerId;
-  input.ox = e.clientX; input.oy = e.clientY; input.nx = input.ny = 0;
-  try { el.c.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
-  if (state === 'play' || state === 'drop') showStick();
-}, { passive: false });
-
-window.addEventListener('pointermove', (e) => {
-  if (!input.active || e.pointerId !== input.id) return;
-  let dx = e.clientX - input.ox, dy = e.clientY - input.oy;
-  const d = Math.hypot(dx, dy);
-  if (d > stickR) { // drag the circle along so reversing direction is instant
-    const k = 1 - stickR / d;
-    input.ox += dx * k; input.oy += dy * k;
-    dx = e.clientX - input.ox; dy = e.clientY - input.oy;
-  }
-  input.nx = dx / stickR; input.ny = dy / stickR;
-  if (el.stick.classList.contains('on')) moveStick();
-});
-window.addEventListener('pointerup', (e) => { audio.init(); releaseStick(e); });
-window.addEventListener('pointercancel', releaseStick);
-el.c.addEventListener('lostpointercapture', releaseStick);
-window.addEventListener('blur', () => { releaseStick(); keys.l = keys.r = keys.u = keys.d = 0; });
-window.addEventListener('contextmenu', (e) => e.preventDefault());
-document.addEventListener('gesturestart', (e) => e.preventDefault());
-
-const KEYMAP = { ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd' };
-window.addEventListener('keydown', (e) => {
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
-  const k = KEYMAP[e.code];
-  if (k) {
-    e.preventDefault();
-    keys[k] = 1;
-    if (state === 'intro' || state === 'title' || state === 'over') onPress();
-  } else if (e.code === 'Space' || e.code === 'Enter') {
-    if (document.activeElement === el.mute || document.activeElement === el.share) return;
-    e.preventDefault();
-    onPress();
-  } else if (e.code === 'KeyM') toggleMute();
-});
-window.addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) keys[k] = 0; });
-
-function toggleMute() {
-  audio.init();
-  audio.setMuted(!audio.muted);
-  el.mute.setAttribute('aria-pressed', audio.muted ? 'true' : 'false');
-  el.mute.setAttribute('aria-label', audio.muted ? 'Unmute sound' : 'Mute sound');
-}
-el.mute.addEventListener('pointerdown', (e) => e.stopPropagation());
-el.mute.addEventListener('click', (e) => { e.stopPropagation(); toggleMute(); });
-el.mute.setAttribute('aria-pressed', audio.muted ? 'true' : 'false');
-el.mute.setAttribute('aria-label', audio.muted ? 'Unmute sound' : 'Mute sound');
-
-el.share.addEventListener('pointerdown', (e) => e.stopPropagation());
-el.share.addEventListener('click', async (e) => {
-  e.stopPropagation();
-  const text = `i got ${/^[AFS]/.test(lastGrade) ? 'an' : 'a'} ${lastGrade} on s.computer (${lastScore} ${lastScore === 1 ? 's' : "s's"})`;
-  const url = 'https://s.computer';
-  if (navigator.share) {
-    try { await navigator.share({ title: 's.computer', text, url }); return; } catch (err) { if (err && err.name === 'AbortError') return; }
-  }
-  try { // no share sheet (desktop, or blocked in a frame): copy instead
-    await navigator.clipboard.writeText(`${text} ${url}`);
-    el.share.textContent = 'copied!';
-    setTimeout(() => { el.share.textContent = 'share'; }, 1400);
-  } catch (_) { /* no clipboard either */ }
-});
-
-/* ---------- game flow ---------- */
-
-let lastGrade = 'F', lastScore = 0;
-let state = 'intro', stateT = 0, introT = 0, dropThen = 'title', overAt = 0, fallReason = 'fly';
-let ball = makeBall(), game = makeGame(), fall = null;
-const tilt = { a: 0, c: 0, va: 0, vc: 0 };
-let boardA = 0, boardC = 0, boardY = PAPER_Y + 0.004, camLift = PAPER_Y;
-const bump = { y: 0, v: 0 }, sq = { y: 0, v: 0 }, follow = { x: 0, z: 0 };
-let bob = 0, shake = 0, happyT = 0, blinkT = 2.5, tickT = 0, tokT = 0, tokPop = 1, trailT = 0, simT = 0, acc = 0;
-const qRoll = new THREE.Quaternion(), qBoard = new THREE.Quaternion(), qWorld = new THREE.Quaternion(), euler = new THREE.Euler();
-const fallSpin = new THREE.Vector3(1, 0, 0);
-let fallSpinRate = 0;
-const wob = [0, 0], w3 = [0, 0, 0], wv = [0, 0, 0], prevV = [0, 0, 0];
-const ev = {};
-const STEP = 1 / 120;
-const corpses = [];
-const PRAISE = ['rad!', 'sick!', 'tubular!', 'nice!', 'whoa!', 'clean!', 'S-tier!'];
-
-function setState(s) { state = s; stateT = 0; }
-
-// intro: a pen draws the 14 strokes on the page, then the S peels up off the paper
-const T0 = 0.35, DRAW = 0.1, GAP = 0.055, PER = DRAW + GAP;
-const DRAW_END = T0 + STROKES.length * PER + 0.12;
-const LIFT = 1.05;
-const INTRO_END = DRAW_END + LIFT;
-const strokeProg = (i, t) => clamp((t - T0 - i * PER) / DRAW, 0, 1);
-
-function updateIntro(dt) {
-  introT += dt;
-  for (let i = 0; i < STROKES.length; i++) setStroke(i, strokeProg(i, introT));
-  placePen(introT);
-  const lp = clamp((introT - DRAW_END) / LIFT, 0, 1);
-  boardY = lerp(PAPER_Y + 0.004, 0, easeOutBack(lp));
-  slab.visible = lp > 0.001;
-  slab.scale.y = Math.max(0.02, easeOutCubic(Math.min(1, lp * 1.4)));
-  camLift = PAPER_Y * (1 - easeOutCubic(lp));
-  if (introT >= INTRO_END) finishIntro();
-}
-
-function placePen(t) {
-  let x, z, h;
-  const k = Math.floor((t - T0) / PER), local = t - T0 - k * PER;
-  if (t < T0) {
-    const s = STROKES[0], q = easeOutCubic(t / T0);
-    x = lerp(s.ax + 1.5, s.ax, q); z = lerp(s.az - 1, s.az, q); h = 1.6 * (1 - q);
-  } else if (k >= STROKES.length) {
-    const s = STROKES[STROKES.length - 1], q = clamp((t - T0 - STROKES.length * PER) / 0.7, 0, 1);
-    x = s.bx + q * 5; z = s.bz - q * 6; h = q * q * 9;
-  } else if (local < DRAW) {
-    const s = STROKES[k], p = local / DRAW;
-    x = s.ax + s.dx * p; z = s.az + s.dz * p; h = 0;
-  } else {
-    const s = STROKES[k], n = STROKES[Math.min(k + 1, STROKES.length - 1)], q = (local - DRAW) / GAP;
-    x = lerp(s.bx, n.ax, q); z = lerp(s.bz, n.az, q); h = Math.sin(q * Math.PI) * 0.45;
-  }
-  pen.position.set(x, boardY + INK_R * 1.7 + h, z);
-  pen.visible = t < T0 + STROKES.length * PER + 0.7;
-}
-
-function finishIntro() {
-  for (let i = 0; i < STROKES.length; i++) setStroke(i, 1);
-  slab.visible = true; slab.scale.y = 1;
-  boardY = 0; camLift = 0; pen.visible = false;
-  if (reduceMotion) { ball = makeBall(); qRoll.identity(); ballRoot.visible = true; enterTitle(); } else startDrop('title');
-}
-
-function skipIntro() { introT = INTRO_END; updateIntro(0); }
-
-function startDrop(then) {
-  ball = makeBall();
-  ball.air = true; ball.y = 5.2; ball.vy = 0;
-  qRoll.identity();
-  fall = null;
-  ballRoot.visible = true;
-  dropThen = then;
-  setState('drop');
-}
-
-function enterTitle() {
-  setState('title');
-  game = makeGame();
-  spawnToken(game, ball);
-  showToken();
-  el.cta.textContent = coarse ? 'drag anywhere to start' : 'click and drag to start';
-  el.keys.hidden = coarse;
-  el.title.classList.add('show');
-  setBest();
-}
-
-function startPlay() {
-  el.title.classList.remove('show');
-  if (!game.token) spawnToken(game, ball);
-  else {
-    const tk = game.token;
-    tk.T = tk.t = tokenTime(Math.abs(tk.s - projectToPath(ball.x, ball.z).s), game.score);
-  }
-  showToken();
-  setScore(game.score);
-  el.score.classList.add('on');
-  setState('play');
-}
-
-function showToken() {
-  const tk = game.token;
-  if (!tk) { tokenRoot.visible = false; return; }
-  tokenRoot.position.set(tk.x, 0, tk.z);
-  tokenRoot.visible = true;
-  tokPop = 0; tickT = 0;
-}
-
-function onPress() {
-  audio.init();
-  if (state === 'intro') skipIntro();
-  else if (state === 'title') startPlay();
-  else if (state === 'over' && performance.now() - overAt > 450) retry();
-}
-
-function retry() {
-  el.over.classList.remove('show');
-  addCorpse();
-  game = makeGame();
-  tokenRoot.visible = false;
-  setScore(0);
-  el.score.classList.add('on');
-  startDrop('play');
-}
-
-// leave the last ball lying on the notebook page, like evidence
-function addCorpse() {
-  if (!fall || !fall.floor) return;
-  const c = ballRoot.clone(true);
-  c.traverse((o) => { if (o.material === M.ball) o.material = M.corpse; });
-  scene.add(c);
-  corpses.push(c);
-  if (corpses.length > 12) scene.remove(corpses.shift());
-}
-
-function startFall(reason) {
-  fallReason = reason;
-  fall = toFall(ball, boardA, boardC, boardY + bump.y + bob);
-  euler.set(boardA, 0, boardC);
-  qWorld.setFromEuler(euler).multiply(qRoll);
-  fallSpin.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
-  fallSpinRate = 7 + Math.random() * 5;
-  tokenRoot.visible = false;
-  releaseStick();
-  setState('fall');
-  audio.whistle();
-  haptic(35);
-  shake = Math.max(shake, 0.12);
-  popAt(reason === 'slow' ? 'too slow!' : pick(['nooo!', 'aaaa!', 'whoops!', 'bye!']), fall.x, fall.y + 0.7, fall.z, 'red');
-}
-
-function doFlick() {
-  const [dx, dz] = flickBall(ball);
-  game.token = null;
-  tokenRoot.visible = false;
-  tilt.vc += -dx * 3.2; tilt.va += dz * 3.2; // the S flicks you off
-  setState('flick');
-  audio.boing();
-  shake = Math.max(shake, 0.18);
-}
-
-function showOver() {
-  const s = game.score, isBest = s > best;
-  if (isBest) { best = s; try { localStorage.setItem('s.best', String(best)); } catch (_) { /* ignore */ } }
-  const [, g, remark] = gradeFor(s);
-  lastGrade = g; lastScore = s;
-  el.grade.textContent = g;
-  el.remark.textContent = remark;
-  el.reason.textContent = fallReason === 'slow' ? 'too slow. the S got bored.' : pick(['flew out!', 'yeeted.', 'wheeeee', 'launched!']);
-  el.tally.textContent = `you got ${s} ${s === 1 ? 's' : "s's"}`;
-  el.bestline.textContent = isBest && s > 0 ? 'new best!' : `best: ${best}`;
-  el.again.textContent = coarse ? 'tap to try again' : 'click to try again';
-  el.over.classList.add('show');
-  setBest();
-  overAt = performance.now();
-  setState('over');
-  if (s >= 15) audio.tada(); else if (s < 6) audio.sad();
-}
-
-function setScore(n, bumpIt) {
-  el.score.textContent = String(n);
-  if (bumpIt) { el.score.classList.remove('bump'); void el.score.offsetWidth; el.score.classList.add('bump'); }
-}
-function setBest() { el.best.textContent = best > 0 ? `best ${best}` : ''; }
-
-const _pv = new THREE.Vector3();
-function popAt(text, x, y, z, cls) {
-  _pv.set(x, y, z).project(camera);
-  if (_pv.z > 1) return;
-  const d = document.createElement('div');
-  d.className = cls ? `pop ${cls}` : 'pop';
-  d.textContent = text;
-  d.style.left = `${((_pv.x * 0.5 + 0.5) * innerWidth).toFixed(1)}px`;
-  d.style.top = `${((-_pv.y * 0.5 + 0.5) * innerHeight).toFixed(1)}px`;
-  el.pops.appendChild(d);
-  setTimeout(() => d.remove(), 1100);
-}
-function popBall(text, cls) { popAt(text, ballRoot.position.x, ballRoot.position.y + 0.7, ballRoot.position.z, cls); }
-
-/* ---------- simulation step + event handling ---------- */
-
-function physStep(dt) {
-  const live = state === 'play' || state === 'drop';
-  const [ix, iy] = live ? readInput() : ZERO2;
-  const W = 13; // tilt spring stiffness (critically damped)
-  tilt.va += (W * W * (iy * MAX_TILT - tilt.a) - 2 * W * tilt.va) * dt; tilt.a += tilt.va * dt;
-  tilt.vc += (W * W * (-ix * MAX_TILT - tilt.c) - 2 * W * tilt.vc) * dt; tilt.c += tilt.vc * dt;
-  if (state === 'play') wobble(game, simT, wob); else { wob[0] *= 0.98; wob[1] *= 0.98; }
-  boardA = tilt.a + wob[0]; boardC = tilt.c + wob[1];
-  simT += dt;
-
-  if (state === 'title' || state === 'drop' || state === 'play' || state === 'flick') {
-    const wasAir = ball.air;
-    stepBall(ball, boardA, boardC, dt, ev);
-    if (ev.fall) { startFall(state === 'flick' ? 'slow' : 'fly'); return; }
-    if (state === 'play') {
-      stepGame(game, ball, dt, ev);
-      if (ev.timeout) { ev.timeout = false; doFlick(); return; }
-    }
-    if (wasAir && !ball.air) {
-      if (state === 'drop') { if (dropThen === 'play') startPlay(); else enterTitle(); } else if (state === 'flick') doFlick();
-    }
-  } else if (fall) stepFall(fall, dt, ev);
-}
-
-function handleEvents() {
-  if (ev.collect) onCollect(ev.collect);
-  if (ev.bonk && ev.bonk > 1) onBonk(ev.bonk, ev.bnx, ev.bnz);
-  if (ev.hop) {
-    audio.hop();
-    sq.v -= 2.5;
-    shake = Math.max(shake, 0.06);
-    if (state === 'play') popBall('boing!');
-  }
-  if (ev.land && ev.land > 1.5) { audio.thud(ev.land * 0.6); sq.v += Math.min(5, ev.land * 0.35); }
-  if (ev.thud) { audio.thud(ev.thud); sq.v += Math.min(6, ev.thud * 0.4); }
-}
-
-function onCollect(c) {
-  const s = c.score;
-  setScore(s, true);
-  audio.collect(s);
-  haptic(12);
-  l2w(boardA, boardC, c.x, 0.66, c.z, w3);
-  w3[1] += boardY + bump.y + bob;
-  burst(w3[0], w3[1], w3[2], 18, GOLDS, 3.2, 3.8, 0.11, 0.9, 9);
-  const label = s % 10 === 0 ? `${s}!` : s % 5 === 0 ? pick(PRAISE) : '+1';
-  popAt(label, w3[0], w3[1] + 0.4, w3[2], s % 10 === 0 ? 'big gold' : 'gold');
-  bump.v -= 1.1;
-  happyT = 0.45;
-  if (s % 10 === 0) {
-    audio.tada();
-    for (let i = 0; i < 80; i++) {
-      spawnP((Math.random() - 0.5) * 7, 6 + Math.random() * 3, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 2, -1 - Math.random() * 2, (Math.random() - 0.5) * 2,
-        pick(CONFETTI), 0.14 + Math.random() * 0.08, 2.6, 3.5, 0.9);
-    }
-  }
-  showToken();
-}
-
-function onBonk(s, nx, nz) {
-  audio.bonk(s);
-  sq.v += Math.min(4, s * 0.45);
-  if (s > 3) {
-    l2w(boardA, boardC, ball.x - nx * BALL_R, INK_R * 1.5, ball.z - nz * BALL_R, w3);
-    w3[1] += boardY + bump.y + bob;
-    for (let i = 0; i < Math.min(8, s | 0); i++) {
-      spawnP(w3[0], w3[1], w3[2], (Math.random() - 0.5) * 2.5, 1 + Math.random() * 2, (Math.random() - 0.5) * 2.5, 0x2335a8, 0.05 + Math.random() * 0.04, 0.45, 9, 1.5);
-    }
-  }
-  if (s > 4.5) shake = Math.max(shake, s * 0.012);
-  if (s > 2) haptic(8);
-}
-
-/* ---------- per-frame visuals ---------- */
-
-const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3(), _qi = new THREE.Quaternion(), _f = new THREE.Vector3();
-
-function rollQuat(q, vx, vz, dt) {
-  const sp = Math.hypot(vx, vz);
-  if (sp < 1e-4) return;
-  _d.set(vz / sp, 0, -vx / sp);
-  _q.setFromAxisAngle(_d, (sp / BALL_R) * dt);
-  q.premultiply(_q);
-}
-
-function updateFace(dt) {
-  // look mostly at the camera, leaning toward where it's rolling
-  _v1.copy(camera.position).sub(ballRoot.position).normalize();
-  const hs = Math.hypot(wv[0], wv[2]);
-  if (hs > 0.05 && !(fall && !fall.floor)) {
-    _v2.set(wv[0] / hs, 0, wv[2] / hs);
-    _v1.addScaledVector(_v2, Math.min(0.65, hs * 0.13)).normalize();
-  }
-  face.lookAt(_v3.copy(ballRoot.position).add(_v1));
-
-  const inv = 1 / Math.max(dt, 1e-3);
-  let ax = (wv[0] - prevV[0]) * inv, ay = (wv[1] - prevV[1]) * inv, az = (wv[2] - prevV[2]) * inv;
-  prevV[0] = wv[0]; prevV[1] = wv[1]; prevV[2] = wv[2];
-  const am = Math.hypot(ax, ay, az);
-  if (am > 500) { const k = 500 / am; ax *= k; ay *= k; az *= k; }
-
-  const speed = Math.hypot(ball.vx, ball.vz);
-  const scared = (fall && !fall.floor) || state === 'flick' || (!fall && speed > 6.2) || (!fall && ball.air && state === 'play');
-  const dizzy = !!(fall && fall.floor);
-  happyT -= dt; blinkT -= dt;
-  if (blinkT < -0.12) blinkT = 2 + Math.random() * 3.5;
-  const happy = happyT > 0 && !scared;
-  const open = happy ? 0.22 : blinkT < 0 ? 0.1 : scared ? 1.18 : 1;
-  smile.visible = !scared && !dizzy;
-  ooh.visible = !smile.visible;
-  ooh.scale.setScalar(dizzy ? 0.7 : 1);
-  const heat = !fall && speed > 5 ? clamp((speed - 5) / 3, 0, 1) * 0.35 : 0;
-  M.ball.emissiveIntensity = lerp(M.ball.emissiveIntensity, heat, 1 - Math.exp(-10 * dt));
-
-  for (const e of eyes) {
-    const s = e.g.scale;
-    s.y = lerp(s.y, open, 1 - Math.exp(-25 * dt));
-    s.x = lerp(s.x, scared ? 1.12 : 1, 1 - Math.exp(-12 * dt));
-    e.pupil.visible = s.y > 0.4;
-    if (dizzy) {
-      const a = stateT * 9 * e.side;
-      e.px = Math.cos(a) * PUPIL_MAX * 0.8; e.py = Math.sin(a) * PUPIL_MAX * 0.8;
-    } else {
-      // googly physics: the pupil is a loose weight inside the eye, pushed by gravity and the ball's acceleration
-      e.g.getWorldQuaternion(_qi).invert();
-      _f.set(-ax, -9.8 - ay, -az).applyQuaternion(_qi);
-      e.vx += _f.x * dt; e.vy += _f.y * dt;
-      const k = Math.exp(-3 * dt);
-      e.vx *= k; e.vy *= k;
-      e.px += e.vx * dt; e.py += e.vy * dt;
-      const r = Math.hypot(e.px, e.py);
-      if (r > PUPIL_MAX) {
-        const nx = e.px / r, ny = e.py / r;
-        e.px = nx * PUPIL_MAX; e.py = ny * PUPIL_MAX;
-        const vn = e.vx * nx + e.vy * ny;
-        if (vn > 0) { e.vx -= 1.55 * vn * nx; e.vy -= 1.55 * vn * ny; }
-      }
-    }
-    const rr = Math.min(1, Math.hypot(e.px, e.py) / EYE_R);
-    e.pupil.position.set(e.px, e.py, EYE_R * 0.55 * Math.sqrt(1 - rr * rr) - 0.004);
-  }
-}
-
-function updateVisuals(dt) {
-  bump.v += (-bump.y * 150 - bump.v * 15) * dt; bump.y += bump.v * dt;
-  sq.v += (-sq.y * 280 - sq.v * 17) * dt; sq.y = clamp(sq.y + sq.v * dt, -0.35, 0.45);
-  bob = lerp(bob, state === 'title' ? Math.sin(stateT * 1.7) * 0.09 : 0, 1 - Math.exp(-4 * dt));
-  const by = boardY + bump.y + bob;
-  board.position.set(0, by, 0);
-  board.rotation.set(boardA, 0, boardC);
-  euler.set(boardA, 0, boardC);
-  qBoard.setFromEuler(euler);
-
-  if (ballRoot.visible) {
-    if (fall) {
-      ballRoot.position.set(fall.x, fall.y, fall.z);
-      if (fall.floor) rollQuat(qWorld, fall.vx, fall.vz, dt);
-      else { _q.setFromAxisAngle(fallSpin, fallSpinRate * dt); qWorld.premultiply(_q); }
-      body.quaternion.copy(qWorld);
-      wv[0] = fall.vx; wv[1] = fall.vy; wv[2] = fall.vz;
-    } else {
-      l2w(boardA, boardC, ball.x, ball.y, ball.z, w3);
-      ballRoot.position.set(w3[0], w3[1] + by, w3[2]);
-      if (!ball.air) rollQuat(qRoll, ball.vx, ball.vz, dt);
-      body.quaternion.copy(qBoard).multiply(qRoll);
-      l2w(boardA, boardC, ball.vx, ball.air ? ball.vy : 0, ball.vz, wv);
-    }
-    squash.scale.set(1 + sq.y * 0.5, 1 - sq.y, 1 + sq.y * 0.5);
-    squash.position.y = -sq.y * BALL_R;
-    updateFace(dt);
-  }
-
-  if (tokenRoot.visible) {
-    tokT += dt; tokPop += dt;
-    const tk = game.token;
-    const f = tk && state === 'play' ? clamp(tk.t / tk.T, 0, 1) : 1;
-    const urgent = state === 'play' && f < 0.3;
-    tokenSpin.position.y = 0.66 + Math.sin(tokT * 3.2) * 0.07 + (urgent ? Math.sin(tokT * 40) * 0.025 : 0);
-    tokenSpin.rotation.y = tokT * 2.6;
-    tokenRoot.scale.setScalar(tokPop < 0.4 ? Math.max(0.001, easeOutBack(tokPop / 0.4)) : 1);
-    ring.visible = track.visible = state === 'play';
-    ringGeo.setDrawRange(0, Math.ceil(f * RING_SEG) * 6);
-    M.ring.color.lerpColors(INK_C, RED_C, clamp((0.35 - f) / 0.25, 0, 1));
-    if (urgent) {
-      tickT -= dt;
-      if (tickT <= 0) { audio.tick(); tickT = f < 0.12 ? 0.16 : 0.32; }
-    }
-  }
-
-  // speed trail
-  trailT -= dt;
-  if (!fall && ballRoot.visible && state === 'play' && !ball.air) {
-    const sp = Math.hypot(ball.vx, ball.vz);
-    if (sp > 4.6 && trailT <= 0) {
-      trailT = 0.028;
-      const bp = ballRoot.position;
-      spawnP(bp.x + (Math.random() - 0.5) * 0.2, bp.y - 0.15 + (Math.random() - 0.5) * 0.2, bp.z + (Math.random() - 0.5) * 0.2,
-        (Math.random() - 0.5) * 0.4, 0.3 + Math.random() * 0.4, (Math.random() - 0.5) * 0.4, sp > 6.2 ? 0xff2d6f : 0xff8cbc, 0.07 + Math.random() * 0.05, 0.35, 0, 2);
-    }
-  }
-  updateParticles(dt);
-
-  const rolling = (state === 'play' || state === 'title' || state === 'drop') && !ball.air ? Math.hypot(ball.vx, ball.vz) : fall && fall.floor ? Math.hypot(fall.vx, fall.vz) * 0.5 : 0;
-  audio.roll(document.hidden ? 0 : rolling);
-
-  // camera: fixed framing, a little drift toward the ball, shake on big moments
-  const T = _v3.copy(fit.target);
-  T.y += camLift;
-  const kf = 1 - Math.exp(-2.5 * dt);
-  follow.x = lerp(follow.x, !fall && ballRoot.visible ? ball.x * 0.05 : 0, kf);
-  follow.z = lerp(follow.z, !fall && ballRoot.visible ? ball.z * 0.035 : 0, kf);
-  camera.position.copy(T).addScaledVector(fit.dir, fit.dist);
-  camera.position.x += follow.x;
-  camera.position.z += follow.z;
-  if (shake > 0.002 && !reduceMotion) camera.position.add(_v2.set((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake));
-  shake *= Math.exp(-7 * dt);
-  camera.lookAt(T.x + follow.x * 1.6, T.y, T.z + follow.z * 1.6);
-
-  if (state === 'fall' && fall && ((fall.floor && fall.still > 0.35) || stateT > 3.4)) showOver();
-}
-
-/* ---------- main loop ---------- */
-
-let lastT = performance.now();
-function frame(now) {
-  const dt = Math.min(0.05, Math.max(0, (now - lastT) / 1000));
-  lastT = now;
-  stateT += dt;
-  if (state === 'intro') updateIntro(dt);
-  else {
-    acc += dt;
-    let n = 0;
-    while (acc >= STEP && n < 12) { physStep(STEP); acc -= STEP; n++; }
-    if (n === 12) acc = 0;
-  }
-  handleEvents();
-  for (const k in ev) delete ev[k];
-  updateVisuals(dt);
-  renderer.render(scene, camera);
-  if (!window.__sReady) {
-    window.__sReady = true;
-    const fb = $('fallback');
-    if (fb) fb.hidden = true;
-  }
-}
-
-function onResize() {
-  renderer.setSize(innerWidth, innerHeight, false);
-  fitCamera();
-  stickR = Math.max(56, Math.min(96, Math.min(innerWidth, innerHeight) * 0.17));
-}
-window.addEventListener('resize', onResize);
-el.c.addEventListener('webglcontextlost', (e) => { e.preventDefault(); window.__sFallback('the S lost its graphics context. reload the page to get it back.'); });
-onResize();
-setBest();
-if (reduceMotion) finishIntro();
-renderer.setAnimationLoop(frame);
-
-// handy for poking at it from the console
-window.__s = {
-  get state() { return state; },
-  get score() { return game.score; },
-  get ball() { return ball; },
-  get token() { return game.token; },
-  get fall() { return fall; },
-};
-</script>
+<script type="module" src="./src/main.js"></script>
 </body>
 </html>

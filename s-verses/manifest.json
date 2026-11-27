@@ -1,0 +1,8 @@
+{
+  "sverses": [
+    { "id": "notebook", "home": true, "name": "the notebook", "author": "stutxo" },
+    { "id": "race", "name": "S Grand Prix", "author": "stutxo" },
+    { "id": "golf", "name": "Hole in S", "author": "stutxo" },
+    { "id": "invaders", "name": "S-Invaders", "author": "stutxo" }
+  ]
+}
