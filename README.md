@@ -53,6 +53,6 @@ A robot checks the rules, plays every pull request in a real browser, and commen
 - `s-verses/<id>/index.js` is one s-verse each. `s-verses/manifest.json` lists them in order; the order is their number.
 - `tools/check.mjs` and `tools/smoke.mjs` are the robot that checks pull requests. `.github/workflows/` runs them on each one and comments a link to play it.
 
-Hosted on GitHub Pages from the `main` branch root. `CNAME` points it at `s.computer`.
+Hosted on GitHub Pages from the `main` branch root. `CNAME` points it at `s.computer`. Visits are counted with [GoatCounter](https://www.goatcounter.com) on s.computer only: no cookies, nothing personal.
 
 MIT licensed: see [LICENSE](LICENSE). Every s-verse is shared under the same terms.

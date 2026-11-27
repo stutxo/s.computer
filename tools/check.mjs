@@ -35,6 +35,7 @@ const FORBIDDEN = [
   [/\.innerHTML\s*=|insertAdjacentHTML|outerHTML\s*=/, 'writing HTML (draw with three.js or a canvas instead)'],
   [/\bpostMessage\s*\(/, 'postMessage()'],
   [/\b__s\b|__sReady|__sFallback/, "the engine's debug hooks"],
+  [/\bgoatcounter\b/i, 'the visitor counter'],
   [/https?:\/\//, 'URLs (no network: draw everything yourself)'],
 ];
 
