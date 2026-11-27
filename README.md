@@ -4,7 +4,7 @@ Tilt the S. Grab the gold s's. Don't fly out.
 
 A pen draws the Cool S on a notebook page, the S peels up into 3D, and a googly-eyed ball drops in. Drag anywhere (or use the arrow keys) to tilt the S and roll into the gold s's before their rings run out.
 
-Grab 5 and a portal opens. Roll into it and you warp into the **s-verses**: little games that all star the Cool S, made by different people. Finish one and the portal takes you to the next, then eventually home to the notebook, where every 3 more gold s's opens another portal. Your gold s's add up across every s-verse, and the teacher grades the lot when you fly off the page.
+Grab 3 and a wormhole opens. Roll into it and you fly down a tunnel of Cool S's into the **s-verses**: little games that all star the Cool S, made by different people. Finish one and the wormhole takes you to the next, then eventually home to the notebook, where every 3 more gold s's opens another. Your gold s's add up across every s-verse, and the teacher grades the lot when you fly off the page.
 
 ## The s-verses
 
@@ -35,7 +35,8 @@ A robot plays every pull request in a real browser and checks the rules before a
 - `index.html` is the page: the HUD, the notes, the warp, and the import map for three.js 0.172.0 (from jsDelivr).
 - `src/core.js` is the engine every s-verse shares: renderer, input, synthesized sound, particles, the googly-eyed ball, camera framing.
 - `src/shared.js` is the Cool S itself (its outline, its 14 lines, the channel they make) and the notebook's ball physics.
-- `src/main.js` runs the multiverse: portals, trips, warps, score, game over.
+- `src/main.js` runs the multiverse: wormholes, trips, score, the s-verse list, game over.
+- `src/wormhole.js` is the tunnel of Cool S's you fly down between s-verses.
 - `s-verses/<id>/index.js` is one s-verse each. `s-verses/manifest.json` lists them in order; the order is their number.
 - `tools/check.mjs` and `tools/smoke.mjs` are the robot that checks pull requests.
 

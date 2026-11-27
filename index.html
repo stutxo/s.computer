@@ -49,9 +49,13 @@
   /* ---------- HUD: written in the margins ---------- */
   #hud { position: fixed; inset: 0; pointer-events: none; }
   #logo {
-    position: absolute; left: 16px; top: calc(12px + var(--safe-t));
-    font-size: calc(22px * var(--hud-scale, 1)); line-height: 1; transform: rotate(-3deg); transform-origin: left center;
+    position: absolute; left: 10px; top: calc(6px + var(--safe-t)); pointer-events: auto; cursor: pointer;
+    font: inherit; font-size: calc(22px * var(--hud-scale, 1)); line-height: 1; padding: 6px; border: 0; background: none;
+    transform: rotate(-3deg); transform-origin: left center; display: flex; align-items: center; gap: 5px;
   }
+  #logo .caret { width: .5em; height: .4em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .6; transition: transform .2s; }
+  #logo[aria-expanded="true"] .caret { transform: rotate(180deg); }
+  #logo:focus-visible { outline: 2px dashed currentColor; outline-offset: 2px; border-radius: 6px; }
   #best {
     position: absolute; right: 16px; top: calc(14px + var(--safe-t));
     font-size: calc(21px * var(--hud-scale, 1)); line-height: 1; transform: rotate(2deg); transform-origin: right center;
@@ -217,6 +221,42 @@
   .note .hint:empty { display: none; }
   .note .cta { margin-top: 22px; }
 
+  /* the list of every s-verse: a scrap of notebook paper under the logo */
+  #menu {
+    position: absolute; left: 12px; top: calc(46px + var(--safe-t)); z-index: 6; pointer-events: auto;
+    width: min(84vw, 320px); padding: 12px 16px 10px 40px; color: var(--ink); font-family: var(--hand);
+    background:
+      linear-gradient(90deg, transparent 28px, var(--margin) 28px, var(--margin) 30px, transparent 30px),
+      repeating-linear-gradient(180deg, #fbfcf9 0, #fbfcf9 33px, var(--rule) 33px, var(--rule) 34px);
+    box-shadow: 0 18px 40px -16px rgba(20, 30, 90, .5), 0 2px 6px rgba(20, 30, 90, .14);
+    transform: rotate(-1deg); transform-origin: top left;
+  }
+  #menu[hidden] { display: none; }
+  #menu .menu-head { margin: 0 0 2px; font-size: 17px; line-height: 22px; color: #6d7382; }
+  #menu ol { list-style: none; margin: 0; padding: 0; }
+  #menu li a {
+    display: flex; align-items: baseline; gap: 8px; min-height: 34px; padding: 4px 0;
+    color: var(--ink); text-decoration: none; font-size: 22px; line-height: 26px;
+  }
+  #menu li a:hover .name, #menu li a:focus-visible .name { text-decoration: underline wavy var(--pink) 2px; text-underline-offset: 5px; }
+  #menu li a:focus-visible { outline: none; }
+  #menu .n { width: 1.6em; flex: none; font-size: 16px; color: #6d7382; }
+  #menu .name { flex: 1; }
+  #menu .by { font-size: 16px; color: #6d7382; }
+  #menu li a[aria-current="page"] .name { text-decoration: underline wavy var(--pink) 2px; text-underline-offset: 5px; }
+  #menu .menu-add { display: inline-flex; align-items: center; gap: 7px; margin-top: 6px; font-size: 18px; color: var(--ink); }
+  #menu .menu-add svg, #addyours svg { width: 1em; height: 1em; fill: currentColor; flex: none; }
+
+  /* a little "add your own" note in the corner while you're not playing */
+  #addyours {
+    position: fixed; right: 12px; bottom: calc(14px + var(--safe-b)); z-index: 4;
+    display: inline-flex; align-items: center; gap: 7px; padding: 6px 8px;
+    font-size: 17px; color: var(--ink); text-decoration: none; opacity: 0; pointer-events: none;
+    transform: rotate(-2deg); transition: opacity .3s;
+  }
+  #addyours.on { opacity: .75; pointer-events: auto; }
+  #addyours.on:hover, #addyours:focus-visible { opacity: 1; text-decoration: underline dotted; text-underline-offset: 5px; }
+
   /* the wormhole meter: one dot per gold s until the next wormhole */
   #meter {
     position: absolute; left: 50%; top: calc(80px + var(--safe-t)); transform: translateX(-50%);
@@ -254,7 +294,12 @@
 <div id="flash"></div>
 
 <div id="hud">
-  <div id="logo">s.computer</div>
+  <button id="logo" type="button" aria-expanded="false" aria-controls="menu">s.computer<svg class="caret" viewBox="0 0 12 8" aria-hidden="true"><path d="M1.5 1.8 6 6.2l4.5-4.4"/></svg></button>
+  <nav id="menu" aria-label="every s-verse" hidden>
+    <p class="menu-head">every s-verse, and who made it</p>
+    <ol id="menuList"></ol>
+    <a class="menu-add" href="https://github.com/stutxo/s.computer#make-your-own-s-verse" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>add your own s-verse</a>
+  </nav>
   <div id="score" aria-live="polite"></div>
   <div id="status" aria-live="polite"></div>
   <div id="best"></div>
@@ -268,6 +313,8 @@
     </svg>
   </button>
 </div>
+
+<a id="addyours" href="https://github.com/stutxo/s.computer#make-your-own-s-verse" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>add your own s-verse</a>
 
 <div id="stick"><div id="knob"></div></div>
 <div id="pops"></div>

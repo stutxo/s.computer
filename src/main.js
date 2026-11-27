@@ -10,7 +10,7 @@ const ID_OK = /^[a-z0-9][a-z0-9-]{0,40}$/;
 const MAX_PER_VISIT = 12;        // one visit to an s-verse can't award more gold s's than this
 
 const run = {
-  score: 0, homeCount: 0, portalFrom: 0, portalAt: 5, trips: 0, loop: Math.max(0, parseInt(params.get('loop') || '0', 10) || 0),
+  score: 0, homeCount: 0, portalFrom: 0, portalAt: 3, trips: 0, loop: Math.max(0, parseInt(params.get('loop') || '0', 10) || 0),
   chain: [], deck: [], visited: [], best: parseInt(store.get('s.best', '0'), 10) || 0,
 };
 let manifest = [];
@@ -38,7 +38,7 @@ function markFound(id) {
 function hintLine() {
   const all = manifest.filter((v) => !v.home && !v.hidden), k = all.filter((v) => found.has(v.id)).length;
   if (!all.length) return '';
-  if (!k) return "psst. 5 s's opens a wormhole";
+  if (!k) return "psst. 3 s's opens a wormhole";
   return k < all.length ? `s-verses found: ${k} of ${all.length}` : `s-verses found: all ${all.length}!`;
 }
 // the meter under the score at home: a dot for each gold s until the next wormhole, then a little spiral
@@ -213,6 +213,7 @@ function planTrip() {
 // portal → dark circle opens → fly down the wormhole of S's → through the big S at the end → the next s-verse
 async function warp(from, def, label, swap) {
   warping = true;
+  setMenu(false);
   core.releaseStick();
   audio.warp();
   const [x, y] = from;
@@ -359,7 +360,7 @@ function showOver(reason) {
 function resetRun() {
   overShown = false;
   el.over.classList.remove('show');
-  Object.assign(run, { score: 0, homeCount: 0, portalFrom: 0, portalAt: 5, trips: 0, chain: [], deck: [], visited: [], loop: 0 });
+  Object.assign(run, { score: 0, homeCount: 0, portalFrom: 0, portalAt: 3, trips: 0, chain: [], deck: [], visited: [], loop: 0 });
   hud.score(0);
   updateMeter();
   home.reset();
@@ -381,10 +382,44 @@ el.share.addEventListener('click', async (e) => {
   } catch (_) { /* no clipboard either */ }
 });
 
+/* ---------- the list of every s-verse (tap the logo) ---------- */
+
+const $logo = document.getElementById('logo'), $menu = document.getElementById('menu'), $list = document.getElementById('menuList');
+const $add = document.getElementById('addyours');
+function buildMenu() {
+  $list.textContent = '';
+  manifest.forEach((v, i) => {
+    if (v.hidden) return;
+    const li = document.createElement('li'), a = document.createElement('a');
+    a.href = v.home ? './' : `./?verse=${v.id}`;
+    if (v.id === (DEV || (manifest.find((x) => x.home) || {}).id)) a.setAttribute('aria-current', 'page');
+    const n = document.createElement('span'), name = document.createElement('span'), by = document.createElement('span');
+    n.className = 'n'; n.textContent = `#${i + 1}`;
+    name.className = 'name'; name.textContent = v.name || v.id;
+    by.className = 'by'; by.textContent = v.author ? `@${v.author}` : '';
+    a.append(n, name, by);
+    li.appendChild(a);
+    $list.appendChild(li);
+  });
+}
+function setMenu(open) {
+  $menu.hidden = !open;
+  $logo.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+$logo.addEventListener('click', (e) => { e.stopPropagation(); audio.init(); setMenu($menu.hidden); });
+window.addEventListener('keydown', (e) => { if (e.code === 'Escape' && !$menu.hidden) { setMenu(false); $logo.focus(); } });
+// the "add your own" note shows on the notebook whenever you're not mid-game
+let addShown = false;
+function updateAdd() {
+  const show = !!(cur && cur.def.home && !warping && (overShown || ['intro', 'title'].includes(home && home.state)));
+  if (show !== addShown) { addShown = show; $add.classList.toggle('on', show); }
+}
+
 /* ---------- input routing ---------- */
 
 const START_KEYS = new Set(['Space', 'Enter']);
 input.onPress = (e) => {
+  if (!$menu.hidden) { setMenu(false); return; } // a tap outside the list just closes it
   if (warping || !cur) return;
   if (overShown) { if (performance.now() - overAt > 450) resetRun(); return; }
   if (cur.inst.onPress) try { cur.inst.onPress(e); } catch (err) { onCrash(err); }
@@ -419,6 +454,7 @@ async function boot() {
   } catch (err) { console.error('no manifest', err); manifest = [{ id: 'notebook', home: true }]; }
   const homeEntry = manifest.find((v) => v.home) || { id: 'notebook', home: true };
   if (!manifest.includes(homeEntry)) manifest.unshift(homeEntry);
+  buildMenu();
   homeDef = await loadVerse(homeEntry.id);
   hud.best(run.best);
   onResize();
@@ -437,6 +473,7 @@ let last = performance.now();
 renderer.setAnimationLoop((now) => {
   const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
   last = now;
+  updateAdd();
   if (tunnel) { wormhole.update(dt); renderer.render(wormhole.scene, wormhole.camera); return; }
   if (!cur) return;
   if (cur.inst.showsStick) input.ring = !warping && cur.inst.showsStick();

@@ -254,7 +254,7 @@ export function releaseStick(e) {
 }
 
 window.addEventListener('pointerdown', (e) => {
-  if (e.target && e.target.closest && e.target.closest('button, a')) return;
+  if (e.target && e.target.closest && e.target.closest('button, a, #menu')) return; // links, buttons and the s-verse list aren't the game
   if (e.pointerType === 'mouse' && e.button !== 0) return;
   e.preventDefault();
   audio.init();

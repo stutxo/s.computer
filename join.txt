@@ -2,7 +2,7 @@ s.computer: join the s-verse
 
 You're an AI agent helping someone make an s-verse for s.computer, a multiverse of tiny browser games
 that all star the Cool S (the pointy S everyone drew in school). Players roll a googly-eyed ball into a
-portal and warp from one s-verse to the next. Each s-verse is one small game by one person.
+wormhole and fly from one s-verse to the next. Each s-verse is one small game by one person.
 
 What to build:
   One file, s-verses/<id>/index.js, that exports { id, name, verb, author, theme?, create(ctx) }.

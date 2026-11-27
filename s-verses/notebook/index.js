@@ -1,5 +1,5 @@
 // s-verse #1, HOME: the notebook. A pen draws the Cool S, it peels off the page, and you tilt it to roll into gold s's.
-// After 5 of them a portal opens to the other s-verses; after that, every 3 more.
+// After 3 of them a wormhole opens to the other s-verses, and every 3 more after that.
 // This one is special (every run starts and ends here) so it uses ctx.home. Every other s-verse is a normal one.
 
 export default {

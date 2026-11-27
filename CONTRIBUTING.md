@@ -1,8 +1,8 @@
 # Make an s-verse
 
-s.computer is a multiverse of tiny games that all star the Cool S. Players warp between them through portals, so every s-verse is one stop on a trip: you arrive, play for half a minute, and the portal takes you on. Yours can be anything, as long as the S is the star.
+s.computer is a multiverse of tiny games that all star the Cool S. Players fly between them through wormholes, so every s-verse is one stop on a trip: you arrive, play for half a minute, and the wormhole takes you on. Yours can be anything, as long as the S is the star.
 
-An s-verse is one JavaScript file. The engine hands it three.js and a toolbox (the googly-eyed ball, particles, sound, camera framing, the Cool S's exact geometry), renders whatever scene you build, and handles the portals, the score, and the title card with your name on it.
+An s-verse is one JavaScript file. The engine hands it three.js and a toolbox (the googly-eyed ball, particles, sound, camera framing, the Cool S's exact geometry), renders whatever scene you build, and handles the wormholes, the score, and the title card with your name on it.
 
 ## The rules
 
