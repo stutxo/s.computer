@@ -287,13 +287,20 @@ window.addEventListener('blur', () => { releaseStick(); keys.l = keys.r = keys.u
 window.addEventListener('contextmenu', (e) => e.preventDefault());
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 
+// A button or link tapped or clicked shouldn't keep the keyboard focus: the next Space or Enter meant for the game
+// would press it again (like diving down another wormhole when you meant to putt or fire). Keyboard users keep theirs.
+document.addEventListener('click', (e) => {
+  const t = e.detail > 0 && e.target && e.target.closest && e.target.closest('button, a');
+  if (t) t.blur();
+}, true);
+
 const KEYMAP = { ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd' };
 window.addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const k = KEYMAP[e.code];
   if (k) { e.preventDefault(); keys[k] = 1; }
   if (e.code === 'KeyM') { toggleMute(); return; }
-  if ((e.code === 'Space' || e.code === 'Enter') && document.activeElement && document.activeElement.tagName === 'BUTTON') return;
+  if ((e.code === 'Space' || e.code === 'Enter') && document.activeElement && /^(BUTTON|A)$/.test(document.activeElement.tagName)) return; // a key on a focused button or link is for that
   if (k || e.code === 'Space' || e.code === 'Enter') {
     if (e.code !== 'ArrowLeft' && e.code !== 'ArrowRight' && e.code !== 'ArrowUp' && e.code !== 'ArrowDown') e.preventDefault();
     audio.init();
