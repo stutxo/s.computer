@@ -19,7 +19,8 @@ const server = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
   const p = path.join(ROOT, decodeURIComponent(u.pathname === '/' ? '/index.html' : u.pathname));
   if (!p.startsWith(ROOT) || !fs.existsSync(p) || fs.statSync(p).isDirectory()) { res.writeHead(404); res.end(); return; }
-  res.writeHead(200, { 'content-type': MIME[path.extname(p)] || 'application/octet-stream' });
+  res.writeHead(200, { 'content-type': MIME[path.extname(p)] || 'application/octet-stream', 'content-length': fs.statSync(p).size });
+  if (req.method === 'HEAD') { res.end(); return; } // the page asks for its own headers before starting
   fs.createReadStream(p).pipe(res);
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));

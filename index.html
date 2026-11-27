@@ -19,6 +19,9 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="A wormhole: a tunnel of colorful Cool S's rushing toward a big glowing S, with s.computer written across it.">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="s.computer">
+<meta name="twitter:description" content="tilt the S. grab the gold s's. don't fly out. then fall through a wormhole into a multiverse of tiny games starring the Cool S.">
+<meta name="twitter:image" content="https://s.computer/og.jpg">
 <meta name="twitter:image:alt" content="A wormhole: a tunnel of colorful Cool S's rushing toward a big glowing S, with s.computer written across it.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-1.75 -0.25 5.5 5.5'%3E%3Crect x='-1.75' y='-0.25' width='5.5' height='5.5' rx='1.1' fill='%23f5f7f2'/%3E%3Cpath d='M0 1V2M1 1V2M2 1V2M0 3V4M1 3V4M2 3V4M0 2L1 3M1 2L2 3M2 2L1.5 2.5M0 3L.5 2.5M0 1L1 0L2 1M0 4L1 5L2 4' fill='none' stroke='%232335a8' stroke-width='.34' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <script>
@@ -329,15 +332,6 @@
   }
   #make:focus-visible { outline: 2px dashed var(--ink); outline-offset: 2px; border-radius: 6px; }
 </style>
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.min.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"
-  }
-}
-</script>
-<link rel="modulepreload" href="./src/main.js">
 </head>
 <body>
 <canvas id="c" role="img" aria-label="A giant Cool S floating over a notebook page. Drag to tilt it and roll the googly-eyed ball into the gold s's. Portals lead to other S-shaped games, called s-verses."></canvas>
@@ -410,11 +404,39 @@
   // or it failed to start. Never because of a slow connection, a background tab or an ad blocker.
   window.__sFallback = function (msg) {
     var f = document.getElementById('fallback');
-    if (!f || window.__sReady) return;
+    if (!f || window.__sReady || !f.hidden) return; // the first reason given is the one that sticks
     f.hidden = false;
     if (msg) f.querySelector('.why').textContent = msg;
   };
 </script>
-<script type="module" src="./src/main.js" onerror="window.__sFallback('the S couldn\'t load.\ntry reloading?')"></script>
+<script>
+  // Start the game. Browsers may keep each of the site's files for 10 minutes, so right after an update someone who was
+  // here a moment ago could get some old files and some new ones, and the game wouldn't start. Every update stamps all
+  // the files with the time it went live (their Last-Modified), so ask for that time, reload once if this page is from
+  // an older update, and load the game's files under that time (?v=...), which keeps a browser from mixing updates.
+  (function () {
+    var THREE_AT = 'https://cdn.jsdelivr.net/npm/three@0.172.0/';
+    function go(v) {
+      var q = v ? '?v=' + v : '';
+      var map = { imports: { three: THREE_AT + 'build/three.module.min.js', 'three/addons/': THREE_AT + 'examples/jsm/' } };
+      ['core', 'shared', 'wormhole'].forEach(function (f) { map.imports['./src/' + f + '.js'] = './src/' + f + '.js' + q; });
+      var im = document.createElement('script');
+      im.type = 'importmap';
+      im.textContent = JSON.stringify(map);
+      document.head.appendChild(im);
+      import('./src/main.js' + q).catch(function (err) { console.error(err); window.__sFallback("the S couldn't load.\ntry reloading?"); });
+    }
+    fetch(location.pathname + location.search, { method: 'HEAD', cache: 'no-store' }).then(function (r) {
+      r.text().catch(function () {}); // (finish the request properly)
+      var live = Date.parse(r.headers.get('last-modified') || ''), mine = Date.parse(document.lastModified);
+      if (live && mine && live - mine > 1000) {
+        try {
+          if (sessionStorage.getItem('s.fresh') !== String(live)) { sessionStorage.setItem('s.fresh', String(live)); location.reload(); return; }
+        } catch (_) { /* no storage: carry on with this page */ }
+      }
+      go(live ? live.toString(36) : '');
+    }, function () { go(''); });
+  })();
+</script>
 </body>
 </html>
