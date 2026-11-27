@@ -272,6 +272,7 @@ async function enterVerse(id, from) {
     setCurrent(def, inst, ctx, visit);
     run.visited.push(id);
     markFound(id);
+    if (!replay) count(`s-verse/${id}`, def.name);
   });
   leaving = false;
   if (!cur) return goHome(from, true);
@@ -433,12 +434,21 @@ function updateAdd() {
   if (show !== addShown) { addShown = show; $add.classList.toggle('on', show); }
 }
 
+/* ---------- counting players (GoatCounter, loaded by index.html on s.computer only) ---------- */
+
+function count(path, title) {
+  try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path, title, event: true }); } catch (_) { /* counting never breaks the game */ }
+}
+let played = false;
+function countPlay() { if (!played) { played = true; count('play', 'started playing'); } }
+
 /* ---------- input routing ---------- */
 
 const START_KEYS = new Set(['Space', 'Enter']);
 input.onPress = (e) => {
   if (!$menu.hidden) { setMenu(false); return; } // a tap outside the list just closes it
   if (warping || !cur) return;
+  countPlay();
   if (overShown) { if (performance.now() - overAt > 450) resetRun(); return; }
   if (cur.inst.onPress) try { cur.inst.onPress(e); } catch (err) { onCrash(err); }
 };
@@ -447,6 +457,7 @@ input.onKey = (e, dir, up) => {
   if (!cur) return;
   if (up) { if (cur.inst.onKey) try { cur.inst.onKey(e, dir, true); } catch (err) { onCrash(err); } return; }
   if (warping) return;
+  if (dir || START_KEYS.has(e.code)) countPlay();
   if (overShown) { if ((dir || START_KEYS.has(e.code)) && performance.now() - overAt > 450) resetRun(); return; }
   if (cur.inst === home) { if (dir || START_KEYS.has(e.code)) home.onPress(e); return; }
   if (cur.inst.onKey) try { cur.inst.onKey(e, dir, false); } catch (err) { onCrash(err); }

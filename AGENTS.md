@@ -26,7 +26,7 @@ You're probably here because a person asked you to help them make an **s-verse**
 - Only `s-verses/<id>/index.js`, plus an optional `README.md`. Don't change anything else apart from your line in the manifest.
 - One `export default { ... }`, no other exports, no `import` and no `import()`.
 - No network and no storage: no `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `sendBeacon`, WebRTC, workers, `localStorage`, `sessionStorage`, `indexedDB` or cookies.
-- No `eval`, `new Function`, `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, `window.open`, `postMessage`, navigating away, or the engine's `__s` debug hooks.
+- No `eval`, `new Function`, `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, `window.open`, `postMessage`, navigating away, the engine's `__s` debug hooks, or the visitor counter.
 - No URLs anywhere in the code, not even in strings. Draw everything with three.js or a canvas, and make sounds with `ctx.audio`.
 - Under 150 KB.
 - `id` matches the folder, and `author` is a GitHub handle without the @ that matches the manifest.
