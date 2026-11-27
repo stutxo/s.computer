@@ -398,7 +398,7 @@ el.share.addEventListener('click', async (e) => {
   } catch (_) { /* no clipboard either */ }
 });
 
-/* ---------- the list of every s-verse (tap the logo) ---------- */
+/* ---------- the list of every s-verse (the "4 games" button, or the logo) ---------- */
 
 const $logo = document.getElementById('logo'), $games = document.getElementById('games'), $menu = document.getElementById('menu'), $list = document.getElementById('menuList');
 const $add = document.getElementById('addyours');

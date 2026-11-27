@@ -4,7 +4,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { BALL_R, clamp } from './shared.js';
 
 export { THREE };
-export const $ = (id) => document.getElementById(id);
+const $ = (id) => document.getElementById(id);
 export const coarse = matchMedia('(pointer: coarse)').matches;
 export const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 export const lowEnd = Math.min(screen.width, screen.height) < 500 || (navigator.hardwareConcurrency || 8) <= 4;
