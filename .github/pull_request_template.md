@@ -7,7 +7,7 @@
 **screenshot:** <!-- drag one in -->
 
 - [ ] the Cool S is the star
-- [ ] a visit takes 20 to 45 seconds and ends with `ctx.finish()`
+- [ ] winning opens a wormhole in my world (so does `openWormhole()`): go in to move on, or keep playing
 - [ ] works with one finger, a mouse, and the arrow keys
 - [ ] I played it on a phone
 - [ ] `node tools/check.mjs` passes

@@ -153,48 +153,12 @@ function createNotebook(ctx) {
   ring.position.y = 0.01; ring.renderOrder = 3;
   tokenRoot.add(hiDot, track, ring);
 
-  /* ---------- the portal: a little whirlpool of Cool S's, the mouth of the wormhole ---------- */
-  const portalTex = ctx.canvasTexture(256, 256, (g, w, h) => {
-    const cx = w / 2, cy = h / 2, R = w / 2;
-    const bg = g.createRadialGradient(cx, cy, 0, cx, cy, R);
-    bg.addColorStop(0, '#03040f'); bg.addColorStop(0.7, '#141c55'); bg.addColorStop(0.92, 'rgba(35,53,168,0.9)'); bg.addColorStop(1, 'rgba(35,53,168,0)');
-    g.fillStyle = bg; g.fillRect(0, 0, w, h);
-    g.lineCap = 'round'; g.lineJoin = 'round';
-    for (let i = 0; i < 34; i++) { // tiny S's spiralling down into the middle
-      const t = i / 34, a = t * Math.PI * 4.2, r = R * (0.84 - t * 0.76), size = 30 * (1 - t) + 5;
-      g.save();
-      g.translate(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
-      g.rotate(a + Math.PI / 2);
-      g.globalAlpha = 0.95 - t * 0.55;
-      g.strokeStyle = i % 4 === 0 ? '#ffd66b' : i % 2 ? '#c9d2ff' : '#ffffff';
-      g.lineWidth = Math.max(1.2, size * 0.09);
-      const k = size / 10;
-      g.beginPath();
-      for (const st of STROKES) { g.moveTo((st.ax / SU) * k * 2, (st.az / SU) * k * 2); g.lineTo((st.bx / SU) * k * 2, (st.bz / SU) * k * 2); }
-      g.stroke();
-      g.restore();
-    }
-  });
-  const portalRoot = new THREE.Group();
-  portalRoot.visible = false;
-  board.add(portalRoot);
-  const swirl = new THREE.Mesh(new THREE.CircleGeometry(0.74, 48).rotateX(-Math.PI / 2),
-    new THREE.MeshBasicMaterial({ map: portalTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
-  swirl.position.y = 0.012; swirl.renderOrder = 4;
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.76, 0.06, 12, 48).rotateX(-Math.PI / 2), M.ink);
-  rim.position.y = 0.05;
-  rim.castShadow = true;
-  const orbiters = [];
-  const orbGeo = ctx.miniS(0.035, 0.03, 0.008).geo;
-  for (let i = 0; i < 5; i++) {
-    const o = new THREE.Mesh(orbGeo, M.gold);
-    portalRoot.add(o);
-    orbiters.push(o);
-  }
-  portalRoot.add(swirl, rim);
+  /* ---------- the portal: the wormhole every s-verse uses, a little whirlpool of Cool S's ---------- */
   // It opens tucked against one wall of a straight stretch of the channel, leaving a lane on the other side:
   // roll into it to visit another s-verse, or hug the far wall to sneak past and keep grabbing gold s's.
-  const PORTAL_SIZE = 0.6, PORTAL_R = 0.32, PORTAL_OFF = 0.3; // you only fall in if you roll over the middle of it
+  const PORTAL_R = 0.32, PORTAL_OFF = 0.3; // you only fall in if you roll over the middle of it
+  const wh = ctx.makeWormhole({ radius: 0.444 });
+  board.add(wh.root);
   const NOOKS = [uv(1.5, 1.5), uv(0.5, 1.5), uv(1.5, 3.5), uv(0.5, 3.5)]; // the middles of the four straight stretches
 
   /* ---------- the ball ---------- */
@@ -264,7 +228,7 @@ function createNotebook(ctx) {
   /* ---------- state ---------- */
   // 'title' = the ball has landed and is waiting for the first touch; it says what to do itself (see nudge)
   let state = 'intro', stateT = 0, introT = 0, dropThen = 'title', fallReason = 'fly', active = true, nudgeAt = 0, nudgeN = 0;
-  let ball = makeBall(), game = makeGame(), fall = null, portal = null, portalT = 0, suck = null;
+  let ball = makeBall(), game = makeGame(), fall = null, portal = null, suck = null;
   const tilt = { a: 0, c: 0, va: 0, vc: 0 };
   let boardA = 0, boardC = 0, boardY = PAPER_Y + 0.004, camLift = PAPER_Y;
   const bump = { y: 0, v: 0 }, follow = { x: 0, z: 0 };
@@ -392,12 +356,7 @@ function createNotebook(ctx) {
   function openPortal() {
     const p = portalSpot();
     portal = { x: p.x, z: p.z, close: false };
-    portalRoot.position.set(p.x, 0, p.z);
-    portalRoot.visible = true;
-    portalRoot.scale.setScalar(0.001);
-    portalT = 0;
-    audio.portalOpen();
-    ctx.haptic(20);
+    wh.open(p.x, 0, p.z);
     l2w(boardA, boardC, p.x, 0.9, p.z, w3);
     hud.pop('a wormhole!', w3[0], w3[1] + boardY, w3[2], camera, 'big');
     keepT = 1; // ...then a nudge over the gold s that you don't have to go in
@@ -610,19 +569,10 @@ function createNotebook(ctx) {
       }
     }
 
-    if (portalRoot.visible) {
-      portalT += dt;
-      portalRoot.scale.setScalar(PORTAL_SIZE * (portalT < 0.6 ? Math.max(0.001, easeOutBack(portalT / 0.6)) : 1 + Math.sin(portalT * 4) * 0.03));
-      swirl.rotation.y = -portalT * 1.6;
-      for (let i = 0; i < orbiters.length; i++) {
-        const a = portalT * 1.4 + (i / orbiters.length) * Math.PI * 2;
-        orbiters[i].position.set(Math.cos(a) * 0.98, 0.5 + Math.sin(portalT * 2.4 + i) * 0.1, Math.sin(a) * 0.98); // high enough to clear the wall
-        orbiters[i].rotation.y = portalT * 3 + i;
-      }
-      if (Math.random() < dt * 4 && state !== 'away') {
-        l2w(boardA, boardC, portal.x + (Math.random() - 0.5) * 0.85, 0.1, portal.z + (Math.random() - 0.5) * 0.85, w3);
-        fx.spawn(w3[0], w3[1] + by, w3[2], 0, 1 + Math.random() * 0.6, 0, pick([0xffffff, 0xc9d2ff, 0xffd66b]), 0.05, 0.7, -0.4, 0.6);
-      }
+    wh.update(dt);
+    if (wh.isOpen && Math.random() < dt * 4 && state !== 'away') {
+      l2w(boardA, boardC, portal.x + (Math.random() - 0.5) * 0.85, 0.1, portal.z + (Math.random() - 0.5) * 0.85, w3);
+      fx.spawn(w3[0], w3[1] + by, w3[2], 0, 1 + Math.random() * 0.6, 0, pick([0xffffff, 0xc9d2ff, 0xffd66b]), 0.05, 0.7, -0.4, 0.6);
     }
 
     if (state === 'title' && stateT >= nudgeAt) { nudge(); nudgeAt = stateT + 2.2; }
@@ -695,7 +645,7 @@ function createNotebook(ctx) {
       if (state === 'intro') settle();
       home.started();
       portal = null; keepT = 0;
-      portalRoot.visible = false;
+      wh.close();
       game.token = null;
       tokenRoot.visible = false;
       tilt.a = tilt.c = tilt.va = tilt.vc = 0;
@@ -706,7 +656,7 @@ function createNotebook(ctx) {
       addCorpse();
       game = makeGame();
       portal = null; keepT = 0;
-      portalRoot.visible = false;
+      wh.close();
       tokenRoot.visible = false;
       startDrop('play');
     },

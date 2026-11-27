@@ -1,7 +1,7 @@
 // The engine every s-verse shares: renderer, input, sound, HUD, particles, the googly-eyed ball, camera framing.
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { BALL_R, clamp } from './shared.js';
+import { BALL_R, clamp, OUTLINE, INNER, STROKES, SU } from './shared.js';
 
 export { THREE };
 const $ = (id) => document.getElementById(id);
@@ -613,4 +613,105 @@ export function miniSGeometry(OUTLINE, INNER, scale, depth = 0.08, bevel = 0.022
     return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, len: Math.hypot(x1 - x0, y1 - y0), ang: Math.atan2(y1 - y0, x1 - x0) };
   });
   return { geo, bars, thickness: depth + bevel * 2.4 };
+}
+
+/* ---------- the wormhole every s-verse sends players on through ---------- */
+
+// A whirlpool of tiny Cool S's with an ink rim and five gold s's going round, lying flat (facing +y).
+// Add .root to your scene, open() it somewhere when the player wins, update(dt) it every frame, and when the
+// player's thing is over its middle, take() it: that spirals it in and then calls onEnter (ctx.finish in s-verses).
+export function makeWormhole({ radius = 0.75, onEnter = null } = {}) {
+  const tex = canvasTexture(256, 256, (g, w, h) => {
+    const cx = w / 2, cy = h / 2, R = w / 2;
+    const bg = g.createRadialGradient(cx, cy, 0, cx, cy, R);
+    bg.addColorStop(0, '#03040f'); bg.addColorStop(0.7, '#141c55'); bg.addColorStop(0.92, 'rgba(35,53,168,0.9)'); bg.addColorStop(1, 'rgba(35,53,168,0)');
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (let i = 0; i < 34; i++) { // tiny S's spiralling down into the middle
+      const t = i / 34, a = t * Math.PI * 4.2, r = R * (0.84 - t * 0.76), size = 30 * (1 - t) + 5;
+      g.save();
+      g.translate(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+      g.rotate(a + Math.PI / 2);
+      g.globalAlpha = 0.95 - t * 0.55;
+      g.strokeStyle = i % 4 === 0 ? '#ffd66b' : i % 2 ? '#c9d2ff' : '#ffffff';
+      g.lineWidth = Math.max(1.2, size * 0.09);
+      const k = size / 10;
+      g.beginPath();
+      for (const st of STROKES) { g.moveTo((st.ax / SU) * k * 2, (st.az / SU) * k * 2); g.lineTo((st.bx / SU) * k * 2, (st.bz / SU) * k * 2); }
+      g.stroke();
+      g.restore();
+    }
+  });
+  const root = new THREE.Group(), inner = new THREE.Group();
+  root.visible = false;
+  inner.scale.setScalar(radius / 0.74);
+  root.add(inner);
+  const swirl = new THREE.Mesh(new THREE.CircleGeometry(0.74, 48).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
+  swirl.position.y = 0.012; swirl.renderOrder = 4;
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.76, 0.06, 12, 48).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x2335a8, roughness: 0.35 }));
+  rim.position.y = 0.05;
+  rim.castShadow = true;
+  const orbGeo = miniSGeometry(OUTLINE, INNER, 0.035, 0.03, 0.008).geo, orbMat = new THREE.MeshStandardMaterial({ color: 0xffc21a, metalness: 0.5, roughness: 0.3 });
+  const orbiters = [];
+  for (let i = 0; i < 5; i++) { const o = new THREE.Mesh(orbGeo, orbMat); inner.add(o); orbiters.push(o); }
+  inner.add(swirl, rim);
+
+  let t = 0, openT = -1, take = null;
+  const _w = new THREE.Vector3();
+  // where obj is in the wormhole's own flat plane (its x and z; y is how far above it)
+  const local = (obj, out) => root.worldToLocal(obj.getWorldPosition(out));
+  return {
+    root, radius,
+    get isOpen() { return openT >= 0; },
+    get taking() { return !!take; },
+    // pop it open (at x, y, z in its parent's space, if given), with a whoosh
+    open(x, y, z) {
+      if (x !== undefined) root.position.set(x, y || 0, z);
+      if (openT >= 0) return;
+      openT = 0; root.visible = true; root.scale.setScalar(0.001);
+      audio.portalOpen();
+      haptic(20);
+    },
+    close() { openT = -1; take = null; root.visible = false; },
+    // is (x, z) within r of its middle? For a wormhole lying flat, in the same space as root.position.
+    contains(x, z, r = radius * 0.55) { return openT >= 0 && !take && Math.hypot(x - root.position.x, z - root.position.z) < r; },
+    // is obj over its middle, whichever way the wormhole faces?
+    over(obj, r = radius * 0.55) {
+      if (openT < 0 || take) return false;
+      local(obj, _w);
+      return Math.hypot(_w.x, _w.z) * root.scale.x < r;
+    },
+    // spiral obj down into the middle, then call done (by default: send the player on)
+    take(obj, done = onEnter) {
+      if (take || openT < 0) return;
+      root.updateMatrixWorld();
+      const p = local(obj, new THREE.Vector3());
+      take = { obj, done, t: 0, x: p.x, y: p.y, z: p.z, s: obj.scale.x, w: new THREE.Vector3() };
+      audio.warp();
+      haptic(30);
+    },
+    update(dt) {
+      if (openT < 0) return;
+      t += dt; openT += dt;
+      root.scale.setScalar(openT < 0.6 ? Math.max(0.001, easeOutBack(openT / 0.6)) : 1 + Math.sin(t * 4) * 0.03);
+      swirl.rotation.y = -t * 1.6;
+      for (let i = 0; i < orbiters.length; i++) {
+        const a = t * 1.4 + (i / orbiters.length) * Math.PI * 2;
+        orbiters[i].position.set(Math.cos(a) * 0.98, 0.5 + Math.sin(t * 2.4 + i) * 0.1, Math.sin(a) * 0.98);
+        orbiters[i].rotation.y = t * 3 + i;
+      }
+      if (take) {
+        take.t += dt;
+        const k = Math.min(1, take.t / 0.85), e = easeOutCubic(k), a = Math.atan2(take.z, take.x) + k * 9, r = (1 - e) * Math.hypot(take.x, take.z);
+        root.updateMatrixWorld();
+        root.localToWorld(take.w.set(Math.cos(a) * r, take.y * (1 - e), Math.sin(a) * r));
+        if (take.obj.parent) take.obj.parent.worldToLocal(take.w);
+        take.obj.position.copy(take.w);
+        take.obj.scale.setScalar(Math.max(0.001, take.s * (1 - e)));
+        take.obj.rotation.y += dt * 14;
+        if (k >= 1 && take.done) { const d = take.done; take.done = null; d(); }
+      }
+    },
+  };
 }

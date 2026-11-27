@@ -2,8 +2,9 @@
 // Test it at http://localhost:8000/?verse=<your-id>&replay (see CONTRIBUTING.md). This one is a tiny complete game:
 // gold s's rain down around a giant spinning Cool S, and you slide the googly ball to catch them.
 //
-// The rules, short version: the Cool S is the star. 20-45 seconds. One finger (or mouse), with arrow keys too.
-// No imports and no network: everything you need comes in through ctx. Call ctx.finish() when you're done.
+// The rules, short version: the Cool S is the star. One finger (or mouse), with arrow keys too. When the player wins,
+// open a wormhole in your world; going into it sends them on. If they lose, start again. No imports and no network:
+// everything you need comes in through ctx.
 
 export default {
   id: 'my-s-verse',             // must match your folder name: lowercase letters, numbers and dashes
@@ -16,7 +17,7 @@ export default {
 };
 
 const GOAL = 6;   // catch this many to win
-const LIVES = 3;  // miss this many and you're sent home
+const LIVES = 3;  // miss this many and you start again
 
 function createRain(ctx) {
   const { THREE, audio, hud } = ctx;
@@ -48,6 +49,18 @@ function createRain(ctx) {
   const drops = [];
   const fx = ctx.makeParticles(scene, 200);
 
+  // 5. the wormhole: every s-verse has one. It opens when the player wins (and the engine asks for it after 45 seconds,
+  //    so nobody gets stuck). They can go into it to move on, or keep playing. Here it sits at the right end of the floor.
+  const portal = ctx.makeWormhole({ radius: 0.6 });
+  portal.root.rotation.x = Math.PI / 2; // it lies flat by default: stand it up to face the camera
+  portal.root.position.set(3.15, -4.2, -0.3);
+  scene.add(portal.root);
+  function openWormhole() {
+    if (portal.isOpen) return;
+    portal.open();
+    hud.pop('a wormhole! slide in to go on', 1.4, -3.2, 0, camera, 'big');
+  }
+
   // frame the play area on any screen size: x from -3 to 3, y from -5 to 6
   const fitPts = [];
   for (const x of [-3.3, 3.3]) for (const y of [-5.2, 6.4]) fitPts.push(new THREE.Vector3(x, y, 0));
@@ -70,7 +83,9 @@ function createRain(ctx) {
     if (state === 'play') {
       // input: ctx.readStick() gives [x, y] from -1 to 1, from a drag anywhere or the arrow keys
       const [sx] = ctx.readStick();
-      youAt.x = Math.max(-2.8, Math.min(2.8, youAt.x + sx * 7 * dt));
+      youAt.x = Math.max(-2.8, Math.min(portal.isOpen ? 3.15 : 2.8, youAt.x + sx * 7 * dt));
+      // into the wormhole: it spirals the ball in, then sends the player on (it calls ctx.finish for you)
+      if (portal.over(you.root)) { state = 'warp'; portal.take(you.root); return; }
       spawnT -= dt;
       if (spawnT <= 0) {
         spawnT = 0.9 - Math.min(0.4, ctx.loop * 0.1); // ctx.loop: how many times the player has been round the multiverse
@@ -102,9 +117,13 @@ function createRain(ctx) {
       if (caught >= GOAL) { state = 'won'; ended = t; audio.tada(); hud.popXY('nice!', innerWidth / 2, innerHeight * 0.4, 'big'); }
       if (missed >= LIVES) { state = 'lost'; ended = t; audio.sad(); hud.popXY('oops', innerWidth / 2, innerHeight * 0.4, 'big'); }
     }
-    // when you're done, call ctx.finish once: success goes on to the next s-verse, failure sends the player home
-    if ((state === 'won' || state === 'lost') && t - ended > 1.5) { state = 'done'; ctx.finish({ success: caught >= GOAL }); }
-    you.root.position.set(youAt.x, youAt.y, 0);
+    // a moment after winning or losing, play on: a win opens the wormhole, a loss just starts the round again
+    if ((state === 'won' || state === 'lost') && t - ended > 1.5) {
+      if (state === 'won') openWormhole();
+      caught = 0; missed = 0; state = 'play';
+    }
+    portal.update(dt);
+    if (state !== 'warp') you.root.position.set(youAt.x, youAt.y, 0); // (while warping, the wormhole moves it)
     you.update(dt, [0, 0, 0], camera.position);
     fx.update(dt);
   }
@@ -113,7 +132,8 @@ function createRain(ctx) {
   return {
     scene, camera, update, resize,
     start() { state = 'play'; hud.status(`catch ${GOAL}!`); }, // called when the title card goes away
+    openWormhole,                                                // the engine calls this when time's up
     dispose() {},                                                // stop any sounds you started (drones, loops)
-    debug: () => ({ state, caught, missed }),                    // handy in the console: __s.inst.debug()
+    debug: () => ({ state, caught, missed, wormhole: portal.isOpen }), // handy in the console: __s.inst.debug()
   };
 }

@@ -1,6 +1,7 @@
 // s-verse #3: Hole in S. Mini golf on a putting green shaped like the Cool S, floating in a duck pond.
 // Pull back anywhere and let go to putt (like a slingshot), or aim with the arrow keys and hit space.
 // Its rails are the 14 lines of the S. Mind the windmill in the middle, and don't putt it into the pond.
+// Sink it and a wormhole opens in the little pocket behind the tee: putt into it to go on, or play the hole again.
 
 export default {
   id: 'golf',
@@ -16,8 +17,9 @@ const MAX_STROKES = 8;
 const MAX_V = 12;          // a full-power putt
 const SINK_V = 4.6;        // roll over the cup slower than this and it drops
 const CUP = [-1, 1.0];     // the cup, in the bottom-left pocket of the S
-const TEE = [1, -1.2];     // the tee, in the top-right pocket
+const TEE = [1, -1.5];     // the tee, in the top-right channel, just up from the wormhole's pocket
 const MILL = [0, 0];       // the windmill straddles the S's middle, where the channel crosses over
+const WORM = [1, -0.62];   // the wormhole, in the dead-end pocket just behind the tee
 const POINTS = [0, 8, 6, 5, 4, 3, 2, 1, 1]; // gold s's for sinking it in this many strokes
 const NAMES = ['', 'HOLE IN S!', 'albatross!', 'eagle!', 'birdie!', 'par', 'bogey', 'double bogey', 'phew'];
 
@@ -191,6 +193,10 @@ function createGolf(ctx) {
     return { x: p.x, z: p.z, mesh, taken: false, pop: 0 };
   });
 
+  // the wormhole: it opens once you've sunk it (or time's up) and stays open while you play on
+  const portal = ctx.makeWormhole({ radius: 0.42 });
+  scene.add(portal.root);
+
   const rnd = S.mulberry32(7);
   const padMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.7, side: THREE.DoubleSide });
   for (let i = 0; i < 9; i++) {
@@ -255,7 +261,7 @@ function createGolf(ctx) {
   resize();
 
   /* ---------- state ---------- */
-  let state = 'intro', stateT = 0, strokes = 0, idleT = 0, sent = false, touched = false;
+  let state = 'intro', stateT = 0, strokes = 0, idleT = 0, touched = false, roundWon = false, won = 0;
   let ball = S.makeBall(TEE), rest = { x: TEE[0], z: TEE[1] }, restT = 0, aiming = false, anchor = [0, 0];
   let aimAng = -Math.PI / 2, power = 0.6, keyAim = false, lipT = 0, gateHitT = 0;
   const ev = {}, n3 = [0, 0, 0];
@@ -322,6 +328,8 @@ function createGolf(ctx) {
         googly.happy();
       }
     }
+    // the wormhole: roll the ball over its middle and you're off
+    if (!ball.air && portal.contains(ball.x, ball.z, 0.32) && speed() < SINK_V) { enterWormhole(); return; }
     // the cup (the green dips toward it a little)
     lipT -= dt;
     const dc = Math.hypot(ball.x - CUP[0], ball.z - CUP[1]);
@@ -345,7 +353,7 @@ function createGolf(ctx) {
   }
 
   function toAim() {
-    if (strokes >= MAX_STROKES) { done(0, 'picked up'); return; }
+    if (strokes >= MAX_STROKES) { done(0, 'picked up'); return; } // then the hole starts again
     setState('aim');
     suggestAim();
     power = 0.6;
@@ -366,6 +374,7 @@ function createGolf(ctx) {
 
   function done(points, label) {
     if (state !== 'sunk') setState('sunk');
+    roundWon = points > 0;
     if (points) ctx.addScore(points);
     hud.status(strokes === 1 && points ? 'hole in one!' : `${strokes} ${strokes === 1 ? 'stroke' : 'strokes'}`);
     hud.popXY(label, innerWidth / 2, innerHeight * 0.36, 'big');
@@ -388,6 +397,35 @@ function createGolf(ctx) {
     shake = 0.12;
     hud.pop(pick(['splash!', 'sploosh!', 'glug glug']), ball.x, 0.6, ball.z, camera, 'red');
     for (let i = 0; i < 26; i++) fx.spawn(ball.x, -0.4, ball.z, (Math.random() - 0.5) * 2.5, 2.5 + Math.random() * 2.5, (Math.random() - 0.5) * 2.5, pick([0xffffff, 0xb3e5fc, 0x4fc3f7]), 0.09, 0.7, 12, 0.6);
+  }
+
+  // another go: the ball back on the tee, the gold s's back, and (if they just sank it) the wormhole opens
+  function again() {
+    if (roundWon) won++;
+    ball = S.makeBall(TEE);
+    rest = { x: TEE[0], z: TEE[1] };
+    qRoll.identity();
+    sinkAt = null;
+    strokes = 0;
+    googly.root.scale.setScalar(0.001); // pops back up on the tee
+    for (const tk of tokens) { tk.taken = false; tk.pop = 0; tk.mesh.visible = true; tk.mesh.scale.setScalar(1); }
+    toAim();
+    if (roundWon) openWormhole('won');
+    roundWon = false;
+  }
+  function openWormhole(why) {
+    if (portal.isOpen) return;
+    portal.open(WORM[0], 0, WORM[1]);
+    hud.pop(why === 'time' ? "time's up! a wormhole!" : 'a wormhole!', WORM[0], 1.2, WORM[1], camera, 'big');
+    setTimeout(() => { if (state === 'aim') hud.pop('putt it in, or play again!', ball.x, 1.3, ball.z, camera); }, 900);
+  }
+  function enterWormhole() {
+    setState('warp');
+    ball.vx = ball.vz = 0;
+    aiming = false;
+    dots.visible = false;
+    googly.root.position.set(ball.x, ball.y, ball.z);
+    portal.take(googly.root); // spirals the ball in, then sends the player on
   }
 
   /* ---------- input ---------- */
@@ -434,7 +472,6 @@ function createGolf(ctx) {
         if (k.r || k.l || k.u || k.d) idleT = 0;
       }
       if (!touched && stateT > 1.2) hud.status(ctx.coarse ? 'pull back, let go to putt' : 'drag back and let go (or arrows + space)');
-      if (idleT > 40 && !sent) { done(0, 'the S got bored'); }
     }
     if (state === 'splash' && stateT > 1.1) {
       ball = S.makeBall([rest.x, rest.z]);
@@ -444,10 +481,12 @@ function createGolf(ctx) {
       googly.root.scale.setScalar(0.001);
       toAim();
     }
-    if (state === 'sunk' && stateT > 2.6 && !sent) { sent = true; ctx.finish({ success: true }); }
+    if (state === 'sunk' && stateT > 2.6) again();
 
     // the ball
-    if (state === 'splash') {
+    if (state === 'warp') {
+      // the wormhole is spiralling it in
+    } else if (state === 'splash') {
       const k = clamp(stateT / 0.5, 0, 1);
       googly.root.position.set(ball.x, BALL_R - k * 1.2, ball.z);
       googly.root.scale.setScalar(Math.max(0.001, 1 - k));
@@ -486,6 +525,8 @@ function createGolf(ctx) {
       putter.position.x += cx * dt * 6; putter.position.z += cz * dt * 6;
       putter.position.y = (0.18 - swing) * 3;
     }
+
+    portal.update(dt);
 
     // windmill, flag, gold s's, duck
     hub.rotation.z = sailAng;
@@ -543,6 +584,8 @@ function createGolf(ctx) {
       toAim();
     },
     dispose() { audio.roll(0); },
-    debug: () => ({ state, strokes, ball, aimAng, power, cup: CUP, tee: TEE, gateClosed: gateClosed(), sailAng, tokens, aiming }),
+    // the engine's time limit: open the wormhole even if they haven't sunk it
+    openWormhole(why) { openWormhole(why); },
+    debug: () => ({ state, strokes, ball, aimAng, power, cup: CUP, tee: TEE, gateClosed: gateClosed(), sailAng, tokens, aiming, wormhole: portal.isOpen ? WORM : null, won }),
   };
 }

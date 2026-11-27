@@ -1,13 +1,13 @@
 # Make an s-verse
 
-s.computer is a multiverse of tiny games that all star the Cool S. Players fly between them through wormholes, so every s-verse is one stop on a trip: you arrive, play for half a minute, and the wormhole takes you on. Yours can be anything, as long as the S is the star.
+s.computer is a multiverse of tiny games that all star the Cool S. Players fly between them through wormholes, so every s-verse is one stop on a trip: you arrive, play, and when you win, a wormhole opens in your world. Go in to fly on, or stay and keep playing. Yours can be anything, as long as the S is the star.
 
 An s-verse is one JavaScript file. The engine hands it three.js and a toolbox (the googly-eyed ball, particles, sound, camera framing, the Cool S's exact geometry), renders whatever scene you build, and handles the wormholes, the score, and the title card with your name on it.
 
 ## The rules
 
 1. **The Cool S is the star.** Make it big, put it in the middle, play on it, in it, around it or with it.
-2. **20 to 45 seconds a visit**, then call `ctx.finish({ success: true })` to send the player on. Call `ctx.finish({ success: false })` if they lose: that ends their trip and sends them home.
+2. **Every s-verse has a wormhole.** When the player wins (aim for 20 to 45 seconds in), open one in your world with `ctx.makeWormhole()`. Going into it sends them on, and they can ignore it and keep playing instead. If they lose, start the round again. After 45 seconds the engine calls your `openWormhole()`, so nobody gets stuck.
 3. **One finger or a mouse, plus the arrow keys.** Most people play on a phone. Space and Enter work too.
 4. **Gold s's are the score.** Give them out with `ctx.addScore(n)`. The engine caps one visit at 12.
 5. **One file, no imports, no network.** Everything comes in through `ctx`. Draw with three.js and canvas, and make sounds with `ctx.audio`. No images, no fetching, no storage.
@@ -61,6 +61,7 @@ export default {
 | `onPress(e)`, `onRelease(e)` | a finger or mouse goes down or up anywhere. `e.clientX`, `e.clientY` are in pixels. (The top corners belong to the logo, the score and the "enter wormhole" button, so keep your own buttons out of them.) |
 | `onKey(e, dir, up)` | a key goes down (`up` is false) or up. `dir` is `'l'`, `'r'`, `'u'`, `'d'` for the arrows and WASD; check `e.code` for `'Space'` or `'Enter'`. |
 | `showsStick()`, or `ring: false` | whether to draw the drag circle while the player drags. Turn it off if you draw your own aiming. |
+| `openWormhole(why)` | when the player has been in your s-verse for 45 seconds (`why` is `'time'`). Open your wormhole if it isn't open yet, so they can move on. |
 | `dispose()` | when the player leaves. Stop any `ctx.audio.drone()` you started. The engine frees your scene's GPU memory and stops `ctx.audio.startLoop` music. |
 | `debug()` | optional. Return your state for poking at in the console with `__s.inst.debug()`. |
 
@@ -71,7 +72,8 @@ If `update` or a handler throws, the engine sends the player home rather than cr
 **The game**
 
 - `ctx.addScore(n = 1)` gives the player gold s's and returns their new total.
-- `ctx.finish({ success })` leaves your s-verse. Call it once.
+- `ctx.makeWormhole({ radius })` makes your s-verse's wormhole: the whirlpool of Cool S's from the notebook, lying flat (turn `.root` to stand it up). Add `.root` to your scene, `.open(x, y, z)` it when the player wins, and `.update(dt)` it every frame. When their ball, car or ship is over its middle (`.over(obj)`, or `.contains(x, z)` when it lies flat), `.take(obj)` spirals it in and sends the player on. `.isOpen` tells you if it's open.
+- `ctx.finish()` sends the player on straight away. `.take()` calls it for you.
 - `ctx.loop` is how many times the player has been round the whole multiverse (0 the first time). Make things a bit harder each time.
 
 **Input**
@@ -111,7 +113,7 @@ If `update` or a handler throws, the engine sends the player home rather than cr
 - `S.makeBall()` and `S.stepBall(...)` are the notebook's rolling-ball physics, if you want a ball that bounces off the 14 lines (the mini golf uses them).
 - `S.mulberry32(seed)` is a seeded random generator, so a layout comes out the same every time.
 
-The three s-verses that came first are worth reading. `race` turns the S's channel into a slot-car loop (its pockets become tunnels under the middle band), with hold-to-go controls, a rival that knows every bend's limit, and custom track meshes. `golf` has pull-back aiming with its own UI and uses the shared ball physics. `invaders` is a 2D arcade game laid flat, with instanced blocks and a CRT theme.
+The three s-verses that came first are worth reading. `race` turns the S's channel into a slot-car loop (its pockets become tunnels under the middle band), with hold-to-go controls, a rival that knows every bend's limit, and custom track meshes. `golf` has pull-back aiming with its own UI and uses the shared ball physics. `invaders` is a 2D arcade game laid flat, with instanced blocks and a CRT theme. Each one opens its wormhole a different way: golf's sits in the pocket behind the tee (putt into it), the race's is in your lane (stop in it), and invaders' waits at the end of your lane (drive into it).
 
 ## Ideas up for grabs
 

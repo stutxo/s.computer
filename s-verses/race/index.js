@@ -2,6 +2,7 @@
 // Every Cool S has two dead-end pockets in the middle. Here they're tunnel mouths: the cars dive under the middle band
 // and pop out of the other pocket, which turns the S into what it always looked like, a twisted ribbon. That makes a
 // loop with a bridge over a tunnel. One finger: hold to go, let go to slow down. Too fast round a bend and you fly off.
+// Win and a wormhole opens in your lane on the left straight: stop in it to go on, or race again.
 
 export default {
   id: 'race',
@@ -26,6 +27,8 @@ const BONUS = [3, 1];          // gold s's for finishing 1st, 2nd (plus 1 for ev
 const CTRL = [[1, -0.8], [1, -2.9], [0.62, -3.45], [0, -3.85], [-0.62, -3.45], [-1, -2.9], [-1, -1.05], [1, 1.05],
   [1, 2.9], [0.62, 3.45], [0, 3.85], [-0.62, 3.45], [-1, 2.9], [-1, 0.8], [-1, 0.2], [1, -0.2]];
 const MOUTH_IN = [-1, 0.75], MOUTH_OUT = [1, -0.75], START = [1, -1.75];
+const WORM = [-1, -1.95];      // the wormhole: halfway down the left straight
+const WORM_V = 1.2;            // be going slower than this over its middle and it takes you
 
 function createRace(ctx) {
   const { THREE, S, audio, hud } = ctx;
@@ -238,6 +241,11 @@ function createRace(ctx) {
   const cars = [you, rival];
   const fx = ctx.makeParticles(scene, 300, DESK_Y);
 
+  // the wormhole: it opens in your lane when you win (or time's up) and stays open while you race on
+  const portal = ctx.makeWormhole({ radius: 0.36 });
+  scene.add(portal.root);
+  const wormD = nearIn(you.lane.pts, ...WORM) * you.lane.ds; // how far round your lane it sits
+
   function place(c) {
     const L = c.lane, dd = ((c.d % L.len) + L.len) % L.len, f = dd / L.ds, i = Math.floor(f) % N, j = (i + 1) % N, t = f - Math.floor(f);
     const a = L.pts[i], b = L.pts[j];
@@ -262,7 +270,7 @@ function createRace(ctx) {
   resize();
 
   /* ---------- race ---------- */
-  let state = 'grid', stateT = 0, raceT = 0, lampsLit = 0, held = false, keyHeld = false, touched = false, sent = false, finished = 0, squealT = 0, lastPlace = 2;
+  let state = 'grid', stateT = 0, raceT = 0, lampsLit = 0, held = false, keyHeld = false, touched = false, finished = 0, squealT = 0, lastPlace = 2, wins = 0;
   let motor = null;
   const setState = (s) => { state = s; stateT = 0; };
   const STEP = 1 / 120;
@@ -300,6 +308,7 @@ function createRace(ctx) {
   }
 
   function drive(c, dt) {
+    if (c.player && state === 'warp') return;
     if (c.air) { stepAir(c, dt); return; }
     const L = c.lane;
     place(c);
@@ -323,6 +332,7 @@ function createRace(ctx) {
     c.d += c.v * dt;
     const after = progress(c);
     if (Math.floor(after) > Math.floor(before) && after >= 1) lapDone(c, Math.floor(after));
+    if (c.player && !c.done && state === 'race' && portal.isOpen && c.v < WORM_V && overWormhole(c)) { enterWormhole(); return; }
     if (c.greedy > 0) c.greedy -= dt;
   }
 
@@ -356,6 +366,41 @@ function createRace(ctx) {
     } else audio.collect(2);
     you.googly.happy(3);
     stateT = 0;
+  }
+
+  // another race from the grid; if you just won it, the wormhole opens
+  function again() {
+    const won = you.place === 1;
+    if (won) wins++;
+    for (const c of cars) {
+      Object.assign(c, { d: c.lane.start * c.lane.ds - 0.55, v: 0, slip: 0, drift: 0, air: null, laps: 0, clean: true, done: false, place: 0, greedy: 0 });
+      place(c);
+    }
+    finished = 0; raceT = 0; lampsLit = 0; lastPlace = 2;
+    audio.stopLoop();
+    setState('count');
+    hud.popXY(won ? 'again!' : 'one more go!', innerWidth / 2, innerHeight * 0.3, 'big');
+    if (won) openWormhole('won');
+    hud.status(portal.isOpen ? 'stop in the wormhole to go on' : ctx.coarse ? 'hold anywhere to go' : 'hold space to go');
+  }
+  // is car c (in your lane) over the wormhole's middle?
+  function overWormhole(c) {
+    const L = c.lane, dd = (((c.d - wormD) % L.len) + L.len) % L.len;
+    return Math.min(dd, L.len - dd) < 0.28;
+  }
+  function openWormhole(why) {
+    if (portal.isOpen) return;
+    const w = { lane: you.lane, d: wormD };
+    place(w);
+    portal.open(w.x, 0.004, w.z);
+    hud.pop(why === 'time' ? "time's up! a wormhole!" : 'a wormhole!', w.x, 0.9, w.z, camera, 'big');
+    setTimeout(() => hud.pop('stop in it to go through', w.x, 0.5, w.z, camera), 1000);
+  }
+  function enterWormhole() {
+    setState('warp');
+    you.v = 0;
+    you.g.attach(you.googly.root); // the driver goes too
+    portal.take(you.g); // spirals the car in, then sends you on
   }
 
   function countdown() {
@@ -395,15 +440,17 @@ function createRace(ctx) {
         const lap = clamp(Math.floor(Math.max(0, progress(you))) + 1, 1, LAPS);
         hud.status(!touched && raceT > 0.8 ? (ctx.coarse ? 'hold anywhere to go!' : 'hold space to go!') : `lap ${lap}/${LAPS}  ·  ${place === 1 ? '1st' : '2nd'}`);
       }
-      if (you.done && stateT > 2.6 && !sent) { sent = true; ctx.finish({ success: true }); }
+      if (you.done && stateT > 2.6) again();
       if (!you.done && raceT > 60) { you.done = true; finished++; you.place = finished; finishYou(); } // somebody fell asleep
     }
+    portal.update(dt);
     visuals(dt);
   }
 
   /* ---------- looks ---------- */
   function visuals(dt) {
     for (const c of cars) {
+      if (c.player && state === 'warp') continue; // the wormhole has it
       if (c.air) {
         const a = c.air;
         c.g.position.set(a.x, a.y, a.z);
@@ -457,6 +504,8 @@ function createRace(ctx) {
       if (e.code === 'Space' || e.code === 'Enter' || dir) { keyHeld = !up; if (!up) touched = true; }
     },
     dispose() { if (motor) motor.stop(); motor = null; },
-    debug: () => ({ state, raceT, you, rival, lanes, progress: [progress(you), progress(rival)] }),
+    // the engine's time limit: open the wormhole even if you haven't won
+    openWormhole(why) { openWormhole(why); },
+    debug: () => ({ state, raceT, you, rival, lanes, progress: [progress(you), progress(rival)], wormhole: portal.isOpen ? { d: wormD } : null, wins }),
   };
 }
