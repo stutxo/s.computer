@@ -73,7 +73,8 @@ export function createWormhole(THREE) {
     // tint some of the S's with the colors of where you're headed
     begin(theme) {
       t = 0; travel = 0; arriveT = -1;
-      const tint = [theme && theme.accent, theme && theme.card, theme && theme.ink].filter((c) => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c));
+      const light = (c) => { const n = parseInt(c.slice(1), 16); return 0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255) > 70; };
+      const tint = [theme && theme.accent, theme && theme.card, theme && theme.ink].filter((c) => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c) && light(c));
       for (let n = 0; n < COUNT; n++) {
         if (tint.length && n % 4 === 0) tiles.setColorAt(n, accent.set(tint[(n / 4) % tint.length | 0]));
         else tiles.setColorAt(n, col.setHex(PALETTE[n % PALETTE.length]));
