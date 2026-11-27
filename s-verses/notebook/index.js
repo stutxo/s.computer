@@ -1,5 +1,5 @@
 // s-verse #1, HOME: the notebook. A pen draws the Cool S, it peels off the page, and you tilt it to roll into gold s's.
-// After 3 of them a wormhole opens to the other s-verses, and every 3 more after that.
+// After 3 of them a wormhole opens to the other s-verses. Roll into it, or dodge it and keep going for a high score.
 // This one is special (every run starts and ends here) so it uses ctx.home. Every other s-verse is a normal one.
 
 export default {
@@ -14,7 +14,7 @@ export default {
 function createNotebook(ctx) {
   const { THREE, S, audio, hud, home } = ctx;
   const { SU, BALL_R, INK_R, PAPER_Y, MAX_TILT, clamp, uv, OUTLINE, STROKES, INNER, PATH, projectToPath, l2w, makeBall, stepBall,
-    toFall, stepFall, makeGame, tokenTime, spawnToken, spawnSpot, stepGame, wobble, flickBall } = S;
+    toFall, stepFall, makeGame, tokenTime, spawnToken, stepGame, wobble, flickBall } = S;
   const { lerp, easeOutCubic, easeOutBack, pick, reduceMotion, lowEnd } = ctx;
 
   /* ---------- scene, camera, light ---------- */
@@ -192,6 +192,10 @@ function createNotebook(ctx) {
     orbiters.push(o);
   }
   portalRoot.add(swirl, rim);
+  // It opens tucked against one wall of a straight stretch of the channel, leaving a lane on the other side:
+  // roll into it to visit another s-verse, or hug the far wall to sneak past and keep grabbing gold s's.
+  const PORTAL_SIZE = 0.6, PORTAL_R = 0.32, PORTAL_OFF = 0.3; // you only fall in if you roll over the middle of it
+  const NOOKS = [uv(1.5, 1.5), uv(0.5, 1.5), uv(1.5, 3.5), uv(0.5, 3.5)]; // the middles of the four straight stretches
 
   /* ---------- the ball ---------- */
   const googly = ctx.makeGoogly({ material: M.ball, faceUp: [0, 0, -1] });
@@ -263,7 +267,7 @@ function createNotebook(ctx) {
   const tilt = { a: 0, c: 0, va: 0, vc: 0 };
   let boardA = 0, boardC = 0, boardY = PAPER_Y + 0.004, camLift = PAPER_Y;
   const bump = { y: 0, v: 0 }, follow = { x: 0, z: 0 };
-  let bob = 0, shake = 0, tickT = 0, tokT = 0, tokPop = 1, trailT = 0, simT = 0, acc = 0, fallSpinRate = 0;
+  let bob = 0, shake = 0, tickT = 0, tokT = 0, tokPop = 1, trailT = 0, simT = 0, acc = 0, fallSpinRate = 0, keepT = 0, nearT = 0;
   const qRoll = new THREE.Quaternion(), qBoard = new THREE.Quaternion(), qWorld = new THREE.Quaternion(), euler = new THREE.Euler();
   const fallSpin = new THREE.Vector3(1, 0, 0);
   const wob = [0, 0], w3 = [0, 0, 0], wv = [0, 0, 0];
@@ -337,18 +341,26 @@ function createNotebook(ctx) {
   }
   function startPlay() {
     home.hideTitle();
-    if (!game.token && !portal) spawnNext();
-    else if (game.token) {
+    if (!game.token) spawnNext();
+    else {
       const tk = game.token;
       tk.T = tk.t = tokenTime(Math.abs(tk.s - projectToPath(ball.x, ball.z).s), game.level);
       showToken();
     }
     setState('play');
   }
-  // next thing on the board: a gold s, or a portal once you've earned one
+  // next thing on the board: always a gold s, plus a wormhole once you've earned one (one at a time; it stays open)
   function spawnNext() {
-    if (home.portalReady()) openPortal();
-    else { spawnToken(game, ball); showToken(); }
+    const opening = !portal && home.portalReady();
+    if (opening) openPortal();
+    // keep gold s's well clear of an open wormhole, so you can always grab one without falling in
+    for (let i = 0; i < 20; i++) {
+      spawnToken(game, ball);
+      if (!portal || Math.hypot(game.token.x - portal.x, game.token.z - portal.z) > 1.4) break;
+    }
+    // the gold s that comes with a new wormhole has no clock: take your time choosing
+    if (opening) game.token.free = true;
+    showToken();
   }
   function showToken() {
     const tk = game.token;
@@ -357,19 +369,28 @@ function createNotebook(ctx) {
     tokenRoot.visible = true;
     tokPop = 0; tickT = 0;
   }
+  // pick a straight stretch well along the channel from the ball, and a wall to tuck the wormhole against
+  function portalSpot() {
+    const sb = projectToPath(ball.x, ball.z).s;
+    const spots = NOOKS.map(([cx, cz]) => {
+      const z = cz + (Math.random() - 0.5) * 0.6, x = cx + (Math.random() < 0.5 ? -PORTAL_OFF : PORTAL_OFF);
+      return { x, z, d: Math.abs(projectToPath(cx, z).s - sb) };
+    });
+    const far = spots.filter((p) => p.d > 3.5);
+    return far.length ? pick(far) : spots.sort((a, b) => b.d - a.d)[0];
+  }
   function openPortal() {
-    const p = spawnSpot(ball, Math.random, 4, 0.2);
-    portal = { x: p.x, z: p.z };
+    const p = portalSpot();
+    portal = { x: p.x, z: p.z, close: false };
     portalRoot.position.set(p.x, 0, p.z);
     portalRoot.visible = true;
     portalRoot.scale.setScalar(0.001);
     portalT = 0;
-    game.token = null;
-    tokenRoot.visible = false;
     audio.portalOpen();
     ctx.haptic(20);
     l2w(boardA, boardC, p.x, 0.9, p.z, w3);
     hud.pop('a wormhole!', w3[0], w3[1] + boardY, w3[2], camera, 'big');
+    keepT = 1; // ...then a nudge over the gold s that you don't have to go in
   }
 
   function startFall(reason) {
@@ -423,12 +444,16 @@ function createNotebook(ctx) {
       if (ev.fall) { startFall(state === 'flick' ? 'slow' : 'fly'); return; }
       if (state === 'play') {
         if (portal) {
-          if (Math.hypot(ball.x - portal.x, ball.z - portal.z) < 0.62 && ball.y < BALL_R + 0.8) enterPortal();
-        } else {
-          stepGame(game, ball, dt, ev);
-          if (ev.collect) { const c = ev.collect; ev.collect = null; onCollect(c); spawnNext(); }
-          if (ev.timeout) { ev.timeout = false; doFlick(); return; }
+          const d = Math.hypot(ball.x - portal.x, ball.z - portal.z);
+          if (d < PORTAL_R && ball.y < BALL_R + 0.8) { enterPortal(); return; }
+          // skimmed right past it? say so
+          if (d < PORTAL_R + 0.25) portal.close = true;
+          else if (portal.close && d > PORTAL_R + 0.8) { portal.close = false; nearMiss(); }
         }
+        if (game.token && game.token.free) game.token.t = game.token.T;
+        stepGame(game, ball, dt, ev);
+        if (ev.collect) { const c = ev.collect; ev.collect = null; onCollect(c); spawnNext(); }
+        if (ev.timeout) { ev.timeout = false; doFlick(); return; }
       }
       if (wasAir && !ball.air) {
         if (state === 'drop') { if (dropThen === 'play') startPlay(); else enterTitle(); } else if (state === 'flick') doFlick();
@@ -436,8 +461,17 @@ function createNotebook(ctx) {
     } else if (fall) stepFall(fall, dt, ev);
   }
 
+  function nearMiss() {
+    if (simT - nearT < 2.5) return;
+    nearT = simT;
+    l2w(boardA, boardC, ball.x, 0.9, ball.z, w3);
+    hud.pop(pick(['close one!', 'phew!', 'nope!']), w3[0], w3[1] + boardY, w3[2], camera);
+  }
   function enterPortal() {
     setState('portal');
+    keepT = 0;
+    game.token = null;
+    tokenRoot.visible = false;
     suck = { x: ball.x, z: ball.z, y: ball.y, t: 0 };
     ctx.releaseStick();
     audio.warp();
@@ -568,17 +602,22 @@ function createNotebook(ctx) {
 
     if (portalRoot.visible) {
       portalT += dt;
-      portalRoot.scale.setScalar(portalT < 0.6 ? Math.max(0.001, easeOutBack(portalT / 0.6)) : 1 + Math.sin(portalT * 4) * 0.03);
+      portalRoot.scale.setScalar(PORTAL_SIZE * (portalT < 0.6 ? Math.max(0.001, easeOutBack(portalT / 0.6)) : 1 + Math.sin(portalT * 4) * 0.03));
       swirl.rotation.y = -portalT * 1.6;
       for (let i = 0; i < orbiters.length; i++) {
         const a = portalT * 1.4 + (i / orbiters.length) * Math.PI * 2;
-        orbiters[i].position.set(Math.cos(a) * 0.98, 0.3 + Math.sin(portalT * 2.4 + i) * 0.1, Math.sin(a) * 0.98);
+        orbiters[i].position.set(Math.cos(a) * 0.98, 0.5 + Math.sin(portalT * 2.4 + i) * 0.1, Math.sin(a) * 0.98); // high enough to clear the wall
         orbiters[i].rotation.y = portalT * 3 + i;
       }
       if (Math.random() < dt * 4 && state !== 'away') {
-        l2w(boardA, boardC, portal.x + (Math.random() - 0.5) * 1.2, 0.1, portal.z + (Math.random() - 0.5) * 1.2, w3);
+        l2w(boardA, boardC, portal.x + (Math.random() - 0.5) * 0.85, 0.1, portal.z + (Math.random() - 0.5) * 0.85, w3);
         fx.spawn(w3[0], w3[1] + by, w3[2], 0, 1 + Math.random() * 0.6, 0, pick([0xffffff, 0xc9d2ff, 0xffd66b]), 0.05, 0.7, -0.4, 0.6);
       }
+    }
+
+    if (keepT > 0 && (keepT -= dt) <= 0 && state === 'play' && portal && game.token) {
+      l2w(boardA, boardC, game.token.x, 1.2, game.token.z, w3);
+      hud.pop('or keep going!', w3[0], w3[1] + by, w3[2], camera, 'gold');
     }
 
     trailT -= dt;
@@ -643,7 +682,7 @@ function createNotebook(ctx) {
     begin() {
       if (state === 'intro') settle();
       home.hideTitle();
-      portal = null;
+      portal = null; keepT = 0;
       portalRoot.visible = false;
       game.token = null;
       tokenRoot.visible = false;
@@ -654,7 +693,7 @@ function createNotebook(ctx) {
     reset() {
       addCorpse();
       game = makeGame();
-      portal = null;
+      portal = null; keepT = 0;
       portalRoot.visible = false;
       tokenRoot.visible = false;
       startDrop('play');

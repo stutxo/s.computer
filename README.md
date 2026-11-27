@@ -17,7 +17,7 @@ Tilt the S. Grab the gold s's. Don't fly out.
 
 A pen draws the Cool S on a notebook page, the S peels up into 3D, and a googly-eyed ball drops in. Drag anywhere (or use the arrow keys) to tilt the S and roll into the gold s's before their rings run out.
 
-Grab 3 and a wormhole opens. Roll into it and you fly down a tunnel of Cool S's into the **s-verses**: little games that all star the Cool S, made by different people. Every wormhole lands you somewhere random. Finish a game and the next wormhole takes you to another, or sometimes home to the notebook, where every 3 more gold s's opens another. Or tap **enter wormhole** at the top to jump to a new one whenever you like. Your gold s's add up across every s-verse, and the teacher grades the lot when you fly off the page.
+Grab 3 and a wormhole opens. Roll into it and you fly down a tunnel of Cool S's into the **s-verses**: little games that all star the Cool S, made by different people. Or steer around it and keep grabbing gold s's for a high score. Every wormhole lands you somewhere random. Finish a game and the next wormhole takes you to another, or sometimes home to the notebook, where every 3 more gold s's opens another. Or tap **enter wormhole** at the top to jump to a new one whenever you like. Your gold s's add up across every s-verse, and the teacher grades the lot when you fly off the page.
 
 ## The s-verses
 
