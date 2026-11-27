@@ -153,23 +153,26 @@ function createNotebook(ctx) {
   ring.position.y = 0.01; ring.renderOrder = 3;
   tokenRoot.add(hiDot, track, ring);
 
-  /* ---------- the portal ---------- */
+  /* ---------- the portal: a little whirlpool of Cool S's, the mouth of the wormhole ---------- */
   const portalTex = ctx.canvasTexture(256, 256, (g, w, h) => {
     const cx = w / 2, cy = h / 2, R = w / 2;
     const bg = g.createRadialGradient(cx, cy, 0, cx, cy, R);
-    bg.addColorStop(0, '#0a0018'); bg.addColorStop(0.55, '#2a0a5e'); bg.addColorStop(1, 'rgba(60,20,140,0)');
+    bg.addColorStop(0, '#03040f'); bg.addColorStop(0.7, '#141c55'); bg.addColorStop(0.92, 'rgba(35,53,168,0.9)'); bg.addColorStop(1, 'rgba(35,53,168,0)');
     g.fillStyle = bg; g.fillRect(0, 0, w, h);
-    const cols = ['#ff4f93', '#fff04a', '#5fd3ff', '#7dff8a', '#b98cff'];
-    g.lineCap = 'round';
-    for (let arm = 0; arm < 5; arm++) {
-      g.strokeStyle = cols[arm]; g.lineWidth = 7;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (let i = 0; i < 34; i++) { // tiny S's spiralling down into the middle
+      const t = i / 34, a = t * Math.PI * 4.2, r = R * (0.84 - t * 0.76), size = 30 * (1 - t) + 5;
+      g.save();
+      g.translate(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+      g.rotate(a + Math.PI / 2);
+      g.globalAlpha = 0.95 - t * 0.55;
+      g.strokeStyle = i % 4 === 0 ? '#ffd66b' : i % 2 ? '#c9d2ff' : '#ffffff';
+      g.lineWidth = Math.max(1.2, size * 0.09);
+      const k = size / 10;
       g.beginPath();
-      for (let i = 0; i <= 60; i++) {
-        const t = i / 60, a = arm * (Math.PI * 2 / 5) + t * 5.2, r = R * (0.08 + t * 0.86);
-        const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
-        if (i) g.lineTo(x, y); else g.moveTo(x, y);
-      }
-      g.globalAlpha = 0.85; g.stroke(); g.globalAlpha = 1;
+      for (const st of STROKES) { g.moveTo((st.ax / SU) * k * 2, (st.az / SU) * k * 2); g.lineTo((st.bx / SU) * k * 2, (st.bz / SU) * k * 2); }
+      g.stroke();
+      g.restore();
     }
   });
   const portalRoot = new THREE.Group();
@@ -178,13 +181,13 @@ function createNotebook(ctx) {
   const swirl = new THREE.Mesh(new THREE.CircleGeometry(0.74, 48).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({ map: portalTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
   swirl.position.y = 0.012; swirl.renderOrder = 4;
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.76, 0.07, 12, 48).rotateX(-Math.PI / 2),
-    new THREE.MeshStandardMaterial({ color: 0x9b5cff, emissive: 0x7a2cff, emissiveIntensity: 0.8, roughness: 0.3, metalness: 0.2 }));
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.76, 0.06, 12, 48).rotateX(-Math.PI / 2), M.ink);
   rim.position.y = 0.05;
+  rim.castShadow = true;
   const orbiters = [];
-  const orbCols = [0xff4f93, 0xfff04a, 0x5fd3ff, 0x7dff8a, 0xb98cff, 0xffffff];
-  for (let i = 0; i < 6; i++) {
-    const o = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), new THREE.MeshBasicMaterial({ color: orbCols[i] }));
+  const orbGeo = ctx.miniS(0.035, 0.03, 0.008).geo;
+  for (let i = 0; i < 5; i++) {
+    const o = new THREE.Mesh(orbGeo, M.gold);
     portalRoot.add(o);
     orbiters.push(o);
   }
@@ -366,7 +369,7 @@ function createNotebook(ctx) {
     audio.portalOpen();
     ctx.haptic(20);
     l2w(boardA, boardC, p.x, 0.9, p.z, w3);
-    hud.pop('a portal!', w3[0], w3[1] + boardY, w3[2], camera, 'big portal');
+    hud.pop('a wormhole!', w3[0], w3[1] + boardY, w3[2], camera, 'big');
   }
 
   function startFall(reason) {
@@ -566,14 +569,15 @@ function createNotebook(ctx) {
     if (portalRoot.visible) {
       portalT += dt;
       portalRoot.scale.setScalar(portalT < 0.6 ? Math.max(0.001, easeOutBack(portalT / 0.6)) : 1 + Math.sin(portalT * 4) * 0.03);
-      swirl.rotation.y = -portalT * 2.4;
+      swirl.rotation.y = -portalT * 1.6;
       for (let i = 0; i < orbiters.length; i++) {
-        const a = portalT * 2.2 + (i / orbiters.length) * Math.PI * 2;
-        orbiters[i].position.set(Math.cos(a) * 0.95, 0.25 + Math.sin(portalT * 3 + i) * 0.18, Math.sin(a) * 0.95);
+        const a = portalT * 1.4 + (i / orbiters.length) * Math.PI * 2;
+        orbiters[i].position.set(Math.cos(a) * 0.98, 0.3 + Math.sin(portalT * 2.4 + i) * 0.1, Math.sin(a) * 0.98);
+        orbiters[i].rotation.y = portalT * 3 + i;
       }
-      if (Math.random() < dt * 12 && state !== 'away') {
-        l2w(boardA, boardC, portal.x + (Math.random() - 0.5) * 1.4, 0.1, portal.z + (Math.random() - 0.5) * 1.4, w3);
-        fx.spawn(w3[0], w3[1] + by, w3[2], 0, 1.5 + Math.random(), 0, pick(orbCols), 0.07, 0.8, -0.5, 0.5);
+      if (Math.random() < dt * 4 && state !== 'away') {
+        l2w(boardA, boardC, portal.x + (Math.random() - 0.5) * 1.2, 0.1, portal.z + (Math.random() - 0.5) * 1.2, w3);
+        fx.spawn(w3[0], w3[1] + by, w3[2], 0, 1 + Math.random() * 0.6, 0, pick([0xffffff, 0xc9d2ff, 0xffd66b]), 0.05, 0.7, -0.4, 0.6);
       }
     }
 

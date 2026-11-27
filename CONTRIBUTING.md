@@ -107,11 +107,11 @@ If `update` or a handler throws, the engine sends the player home rather than cr
 - `S.OUTLINE` is the silhouette, 12 `[x, z]` corners. `S.STROKES` are the 14 lines as segments `{ ax, az, bx, bz, len }`. `S.INNER` holds the two lines that make the twist. The S is 4 wide and 10 tall, centered on the origin, with `z` toward the bottom of the screen.
 - `S.pointInS(x, z)`, `S.edgeDistance(x, z)` and `S.wallClearance(x, z)` measure against it.
 - `S.PATH` is the centerline of the channel the 14 lines make, with `S.pathPoint(s)` and `S.projectToPath(x, z)` for walking along it.
-- `S.insetPolygon`, `S.chaikinLoop` and `S.resampleLoop` grow, shrink, round off and walk the outline. The race track is the outline pushed outward.
+- `S.insetPolygon`, `S.chaikinLoop` and `S.resampleLoop` grow, shrink, round off and walk outlines and paths. The slot-car track is the channel, smoothed and resampled.
 - `S.makeBall()` and `S.stepBall(...)` are the notebook's rolling-ball physics, if you want a ball that bounces off the 14 lines (the mini golf uses them).
 - `S.mulberry32(seed)` is a seeded random generator, so a layout comes out the same every time.
 
-The three s-verses that came first are worth reading: `race` (driving, AI rivals, a custom track mesh), `golf` (pull-back aiming with its own UI, the shared ball physics) and `invaders` (a 2D arcade game laid flat, instanced blocks, a CRT theme).
+The three s-verses that came first are worth reading. `race` turns the S's channel into a slot-car loop (its pockets become tunnels under the middle band), with hold-to-go controls, a rival that knows every bend's limit, and custom track meshes. `golf` has pull-back aiming with its own UI and uses the shared ball physics. `invaders` is a 2D arcade game laid flat, with instanced blocks and a CRT theme.
 
 ## Ideas up for grabs
 

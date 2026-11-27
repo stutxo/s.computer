@@ -11,7 +11,7 @@ Grab 5 and a portal opens. Roll into it and you warp into the **s-verses**: litt
 | # | s-verse | what you do | by |
 |---|---|---|---|
 | 1 | the notebook | tilt the S, roll into gold s's (home) | [@stutxo](https://github.com/stutxo) |
-| 2 | S Grand Prix | race three laps around the outside of a giant Cool S | [@stutxo](https://github.com/stutxo) |
+| 2 | S Grand Prix | slot-car race through the S, under the middle band and out the other pocket | [@stutxo](https://github.com/stutxo) |
 | 3 | Hole in S | mini golf on an S-shaped green, with a windmill and a duck | [@stutxo](https://github.com/stutxo) |
 | 4 | S-Invaders | defend the S from rows of marching Cool S's | [@stutxo](https://github.com/stutxo) |
 

@@ -1,6 +1,7 @@
 // The s-verse runner: loads every s-verse listed in s-verses/manifest.json, opens portals between them, keeps score.
 import * as core from './core.js';
 import * as S from './shared.js';
+import { createWormhole } from './wormhole.js';
 
 const { THREE, el, audio, hud, input, renderer, store } = core;
 const params = new URLSearchParams(location.search);
@@ -16,6 +17,8 @@ let manifest = [];
 let home = null;         // the notebook (kept alive between trips)
 let cur = null;          // { def, inst, ctx, visit }
 let warping = false, leaving = false, overShown = false, overAt = 0, lastGrade = 'F';
+const wormhole = createWormhole(THREE);
+let tunnel = false; // flying down the wormhole (it's drawn instead of any s-verse)
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function anim(node, frames, opts) {
@@ -105,9 +108,8 @@ function applyTheme(def) {
 const $by = document.getElementById('cardBy');
 function showCard(def, label) {
   const t = def.theme || {}, cs = el.card.style;
-  cs.setProperty('--card-bg', color(t.card));
-  cs.setProperty('--card-ink', color(t.cardInk || t.ink));
-  cs.setProperty('--card-accent', color(t.accent));
+  cs.setProperty('--card-accent', color(t.accent || t.card));
+  cs.setProperty('--card-glow', color(t.glow || t.accent));
   cs.setProperty('--card-font', fontStack(t));
   cs.setProperty('--card-scale', scaleOf(t));
   el.cardNum.textContent = label;
@@ -158,23 +160,42 @@ function planTrip() {
 
 /* ---------- warps ---------- */
 
+// portal → dark circle opens → fly down the wormhole of S's → through the big S at the end → the next s-verse
 async function warp(from, def, label, swap) {
   warping = true;
   core.releaseStick();
   audio.warp();
   const [x, y] = from;
   const R = Math.ceil(Math.hypot(innerWidth, innerHeight)) + 40;
+  const fly = !core.reduceMotion;
+  for (const a of el.warp.getAnimations()) a.cancel();
   el.warp.classList.add('on');
   await anim(el.warp, [{ clipPath: `circle(0px at ${x}px ${y}px)` }, { clipPath: `circle(${R}px at ${x}px ${y}px)` }],
-    { duration: core.reduceMotion ? 150 : 560, easing: 'cubic-bezier(.55,0,.85,.35)' });
+    { duration: fly ? 420 : 150, easing: 'cubic-bezier(.55,0,.85,.35)' });
   try { await swap(); } catch (err) { console.error(err); }
+  // draw the new s-verse and the wormhole once while the screen is dark, so nothing stutters later
+  try { if (cur) renderer.render(cur.inst.scene, cur.inst.camera); } catch (err) { console.error(err); }
+  if (fly) {
+    wormhole.begin(def.theme);
+    wormhole.update(0);
+    renderer.render(wormhole.scene, wormhole.camera);
+    tunnel = true;
+    await anim(el.warp, [{ opacity: 1 }, { opacity: 0 }], { duration: 280, easing: 'ease-out' });
+  }
   showCard(def, label);
-  await sleep(core.reduceMotion ? 900 : 1600);
+  await sleep(fly ? 1350 : 900);
   el.card.classList.remove('show');
+  if (fly) {
+    wormhole.arrive();
+    await sleep(380);
+    await anim(el.warp, [{ opacity: 0 }, { opacity: 1 }], { duration: 120 });
+    tunnel = false;
+  }
   audio.arrive();
-  await anim(el.warp, [{ clipPath: `circle(${R}px at 50% 50%)` }, { clipPath: 'circle(0px at 50% 50%)' }],
-    { duration: core.reduceMotion ? 150 : 520, easing: 'cubic-bezier(.3,.6,.4,1)' });
+  await anim(el.warp, [{ clipPath: `circle(${R}px at 50% 50%)`, opacity: 1 }, { clipPath: 'circle(0px at 50% 50%)', opacity: 1 }],
+    { duration: fly ? 440 : 150, easing: 'cubic-bezier(.3,.6,.4,1)' });
   el.warp.classList.remove('on');
+  for (const a of el.warp.getAnimations()) a.cancel();
   warping = false;
 }
 
@@ -325,6 +346,7 @@ input.onKey = (e, dir, up) => {
 function onResize() {
   renderer.setSize(innerWidth, innerHeight, false);
   input.R = Math.max(56, Math.min(96, Math.min(innerWidth, innerHeight) * 0.17));
+  wormhole.resize();
   if (home && home.resize) home.resize();
   if (cur && cur.inst !== home && cur.inst.resize) try { cur.inst.resize(); } catch (err) { onCrash(err); }
 }
@@ -359,6 +381,7 @@ let last = performance.now();
 renderer.setAnimationLoop((now) => {
   const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
   last = now;
+  if (tunnel) { wormhole.update(dt); renderer.render(wormhole.scene, wormhole.camera); return; }
   if (!cur) return;
   if (cur.inst.showsStick) input.ring = !warping && cur.inst.showsStick();
   else input.ring = !warping && cur.inst.ring !== false;
@@ -380,6 +403,7 @@ window.__s = {
   run,
   get verse() { return cur ? cur.def.id : null; },
   get warping() { return warping; },
+  get tunnel() { return tunnel; },
   get over() { return overShown; },
   get home() { return home && home.debug ? home.debug() : null; },
   get inst() { return cur ? cur.inst : null; },

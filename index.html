@@ -180,7 +180,6 @@
   #status, #score { text-shadow: 0 0 6px var(--hud-glow, var(--paper)), 0 0 2px var(--hud-glow, var(--paper)); }
   body.away #logo, body.away #best { text-shadow: 0 0 6px var(--hud-glow, transparent); }
   body.away .vignette { display: none; }
-  .pop.portal { color: #7a2cff; font-size: 40px; }
   .pop.gold { color: var(--pop-gold, #a86f00); }
   body.away .pop.gold { --pop-gold: #ffc21a; }
   #flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; }
@@ -190,30 +189,22 @@
   }
   body.scanlines .crt { display: block; }
 
-  /* the trip between s-verses: a rainbow vortex that irises open and shut */
-  #warp { position: fixed; inset: 0; z-index: 20; display: none; overflow: hidden; background: #12002e; clip-path: circle(0px at 50% 50%); }
+  /* the trip between s-verses: a dark circle opens from the portal, the wormhole plays on the canvas behind it */
+  #warp { position: fixed; inset: 0; z-index: 20; display: none; background: #0b0f2e; clip-path: circle(0px at 50% 50%); }
   #warp.on { display: block; }
-  #warp::before {
-    content: ""; position: absolute; left: 50%; top: 50%; width: 260vmax; height: 260vmax; margin: -130vmax;
-    background: repeating-conic-gradient(from 0deg, #ff4f93 0 8deg, #fff04a 8deg 16deg, #5fd3ff 16deg 24deg, #7dff8a 24deg 32deg, #b98cff 32deg 40deg);
-    animation: warp-spin 2.4s linear infinite;
-  }
-  #warp::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, #12002e 0 9%, rgba(18,0,46,0.55) 32%, rgba(18,0,46,0) 70%); }
-  @keyframes warp-spin { to { transform: rotate(360deg); } }
-  @media (prefers-reduced-motion: reduce) { #warp::before { animation: none; } }
 
-  /* each s-verse's title card, in its own colors and lettering (from its theme) */
+  /* the next s-verse's name, glowing over the wormhole in its own lettering */
   #card {
-    position: fixed; left: 50%; top: 50%; z-index: 21; width: min(88vw, 420px); padding: 22px 24px 20px;
-    transform: translate(-50%, -50%) scale(.85) rotate(-3deg); opacity: 0; pointer-events: none;
-    background: var(--card-bg, #fbfcf9); color: var(--card-ink, var(--ink)); font-family: var(--card-font, var(--hand));
-    border-radius: 6px; text-align: center; box-shadow: 0 30px 60px -20px rgba(0,0,0,.6);
-    transition: opacity .18s ease, transform .4s cubic-bezier(.2,1.6,.35,1);
+    position: fixed; left: 50%; top: 50%; z-index: 21; width: min(90vw, 460px);
+    transform: translate(-50%, -46%); opacity: 0; pointer-events: none; text-align: center;
+    color: #fff; font-family: var(--card-font, var(--hand));
+    text-shadow: 0 0 22px var(--card-glow, #6f7dff), 0 0 3px var(--card-glow, #6f7dff), 0 2px 0 rgba(0,0,0,.35);
+    transition: opacity .3s ease, transform .7s cubic-bezier(.2,.8,.3,1);
   }
-  #card.show { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-3deg); }
-  #card .num { font-size: calc(18px * var(--card-scale, 1)); opacity: .7; }
-  #card .name { font-size: calc(clamp(34px, 9vw, 52px) * var(--card-scale, 1)); line-height: 1.1; margin: 8px 0 6px; text-wrap: balance; }
-  #card .verb { font-size: calc(clamp(26px, 7vw, 38px) * var(--card-scale, 1)); line-height: 1.15; color: var(--card-accent, inherit); }
+  #card.show { opacity: 1; transform: translate(-50%, -50%); }
+  #card .num { font-size: calc(16px * var(--card-scale, 1)); opacity: .75; }
+  #card .name { font-size: calc(clamp(36px, 10vw, 58px) * var(--card-scale, 1)); line-height: 1.08; margin: 6px 0 8px; text-wrap: balance; }
+  #card .verb { font-size: calc(clamp(24px, 6.5vw, 34px) * var(--card-scale, 1)); line-height: 1.15; color: var(--card-accent, #ffd66b); }
   #card .by { font-size: calc(15px * var(--card-scale, 1)); opacity: .7; margin-top: 12px; }
 
   #over .small-line { font-size: 19px; opacity: .85; }

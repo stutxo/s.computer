@@ -203,12 +203,13 @@ export const audio = (() => {
     sad() { [392, 370, 349, 330].forEach((f, i) => tone(f, f * 0.97, i === 3 ? 0.8 : 0.28, { type: 'sawtooth', vol: 0.055, delay: 0.15 + i * 0.3, vib: i === 3 ? 7 : 0, vibRate: 5 })); },
     tada() { [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.24, { type: 'triangle', vol: 0.15, delay: i * 0.08 })); },
     portalOpen() { [330, 415, 494, 659, 831].forEach((f, i) => tone(f, f * 1.01, 0.5, { type: 'sine', vol: 0.09, delay: i * 0.06, vib: 9, vibRate: 6 })); },
+    // a soft whoosh down the wormhole, and a little landing chime
     warp() {
-      noise(1.1, { vol: 0.25, freq: 200, f1: 5000, q: 2 });
-      tone(110, 880, 1.0, { type: 'sawtooth', vol: 0.06, vib: 30, vibRate: 11 });
-      tone(165, 1320, 1.0, { type: 'triangle', vol: 0.07, vib: 20, vibRate: 7, delay: 0.05 });
+      noise(1.6, { vol: 0.07, freq: 250, f1: 2200, q: 1.2 });
+      tone(220, 660, 1.4, { type: 'sine', vol: 0.05, vib: 8, vibRate: 5 });
+      tone(330, 990, 1.4, { type: 'sine', vol: 0.03, vib: 6, vibRate: 4, delay: 0.1 });
     },
-    arrive() { noise(0.6, { vol: 0.15, freq: 4000, f1: 300, q: 1.5 }); tone(880, 220, 0.5, { type: 'triangle', vol: 0.08 }); },
+    arrive() { noise(0.35, { vol: 0.05, freq: 2500, f1: 400, q: 1 }); tone(784, 784, 0.25, { type: 'triangle', vol: 0.06 }); tone(1175, 1175, 0.35, { type: 'triangle', vol: 0.05, delay: 0.08 }); },
   };
 })();
 
