@@ -1,0 +1,389 @@
+// The s-verse runner: loads every s-verse listed in s-verses/manifest.json, opens portals between them, keeps score.
+import * as core from './core.js';
+import * as S from './shared.js';
+
+const { THREE, el, audio, hud, input, renderer, store } = core;
+const params = new URLSearchParams(location.search);
+const DEV = params.get('verse'); // ?verse=race jumps straight into one s-verse, over and over (for testing your own)
+const ID_OK = /^[a-z0-9][a-z0-9-]{0,40}$/;
+const MAX_PER_VISIT = 12;        // one visit to an s-verse can't award more gold s's than this
+
+const run = {
+  score: 0, homeCount: 0, portalAt: 5, trips: 0, loop: Math.max(0, parseInt(params.get('loop') || '0', 10) || 0),
+  chain: [], deck: [], visited: [], best: parseInt(store.get('s.best', '0'), 10) || 0,
+};
+let manifest = [];
+let home = null;         // the notebook (kept alive between trips)
+let cur = null;          // { def, inst, ctx, visit }
+let warping = false, leaving = false, overShown = false, overAt = 0, lastGrade = 'F';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+function anim(node, frames, opts) {
+  if (node.animate) return node.animate(frames, { fill: 'forwards', ...opts }).finished.catch(() => {});
+  Object.assign(node.style, frames[frames.length - 1]);
+  return sleep(opts.duration || 0);
+}
+const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const away = () => manifest.filter((v) => !v.home && !v.hidden);
+
+/* ---------- the toolbox every s-verse gets (see CONTRIBUTING.md) ---------- */
+
+const base = {
+  version: 1,
+  THREE,
+  S,
+  envTexture: core.envTexture, canvasTexture: core.canvasTexture, makeParticles: core.makeParticles, makeGoogly: core.makeGoogly,
+  ballTexture: core.ballTexture, fitPerspective: core.fitPerspective,
+  miniS: (scale, depth, bevel) => core.miniSGeometry(S.OUTLINE, S.INNER, scale, depth, bevel),
+  sFitPoints: (pad, ys, extra) => core.sFitPoints(S.OUTLINE, pad, ys, extra),
+  readStick: core.readStick, releaseStick: core.releaseStick, input: core.input, keys: core.keys, ZERO2: core.ZERO2,
+  audio, haptic: core.haptic,
+  hud: { status: hud.status, pop: hud.pop, popXY: hud.popXY, flash: hud.flash },
+  lerp: core.lerp, damp: core.damp, easeOutCubic: core.easeOutCubic, easeOutBack: core.easeOutBack, easeInCubic: core.easeInCubic, pick: core.pick,
+  coarse: core.coarse, reduceMotion: core.reduceMotion, lowEnd: core.lowEnd, HAND: core.HAND, ANISO: core.ANISO,
+};
+
+function makeCtx(def) {
+  const visit = { earned: 0 };
+  const ctx = Object.create(base);
+  ctx.loop = run.loop;
+  ctx.addScore = (n = 1) => {
+    n = Math.max(0, Math.floor(n));
+    if (!def.home) n = Math.min(n, MAX_PER_VISIT - visit.earned);
+    if (n <= 0) return run.score;
+    visit.earned += n;
+    run.score += n;
+    hud.score(run.score, true);
+    return run.score;
+  };
+  ctx.finish = (result = {}) => finishVerse(def, result);
+  if (def.home) {
+    ctx.home = {
+      collected() { run.homeCount++; },
+      portalReady: () => run.homeCount >= run.portalAt && away().length > 0,
+      enterPortal: (x, y) => takePortal(x, y),
+      gameOver: (reason) => showOver(reason),
+      showTitle() {
+        el.cta.textContent = core.coarse ? 'drag anywhere to start' : 'click and drag to start';
+        el.keys.hidden = core.coarse;
+        el.title.classList.add('show');
+        hud.best(run.best);
+      },
+      hideTitle() { el.title.classList.remove('show'); hud.score(run.score); },
+    };
+  }
+  return { ctx, visit };
+}
+
+/* ---------- looks: every s-verse can bring its own lettering and colors ---------- */
+
+const FONT_OK = /^[A-Za-z0-9 ]{1,40}$/;
+const COLOR_OK = /^(#[0-9a-f]{3,8}|rgba?\([0-9., %]+\))$/i;
+const fonts = new Set(['Gochi Hand', 'Rock Salt']);
+const color = (c) => (typeof c === 'string' && COLOR_OK.test(c) ? c : '');
+const fontStack = (t) => (t.font && FONT_OK.test(t.font) ? `"${t.font}", ${core.HAND}` : '');
+const scaleOf = (t) => (t.hudScale >= 0.3 && t.hudScale <= 2 ? String(t.hudScale) : '');
+function loadFont(t) {
+  if (!t || !t.font || fonts.has(t.font) || !FONT_OK.test(t.font)) return;
+  fonts.add(t.font);
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${t.font.trim().replace(/ +/g, '+')}&display=swap`;
+  document.head.appendChild(link);
+}
+function applyTheme(def) {
+  const t = def.theme || {}, b = document.body, st = b.style;
+  hud.theme(def.id);
+  b.classList.toggle('away', !def.home);
+  b.classList.toggle('scanlines', !!t.crt);
+  st.setProperty('--hud-font', fontStack(t));
+  st.setProperty('--hud-ink', color(t.ink));
+  st.setProperty('--hud-glow', color(t.glow));
+  st.setProperty('--hud-scale', scaleOf(t));
+  st.setProperty('--stick', color(t.stick || t.ink));
+}
+const $by = document.getElementById('cardBy');
+function showCard(def, label) {
+  const t = def.theme || {}, cs = el.card.style;
+  cs.setProperty('--card-bg', color(t.card));
+  cs.setProperty('--card-ink', color(t.cardInk || t.ink));
+  cs.setProperty('--card-accent', color(t.accent));
+  cs.setProperty('--card-font', fontStack(t));
+  cs.setProperty('--card-scale', scaleOf(t));
+  el.cardNum.textContent = label;
+  el.cardName.textContent = def.name || def.id;
+  el.cardVerb.textContent = def.verb || '';
+  $by.textContent = def.author ? `by @${def.author}` : '';
+  el.card.classList.add('show');
+}
+// s-verses are numbered by their place in the manifest: the notebook is #1, the next one added is #2, and so on
+const numberOf = (id) => manifest.findIndex((v) => v.id === id) + 1;
+
+/* ---------- loading s-verses ---------- */
+
+const mods = new Map();
+function loadVerse(id) {
+  if (!ID_OK.test(id)) return Promise.reject(new Error(`bad s-verse id "${id}"`));
+  if (!mods.has(id)) {
+    mods.set(id, import(`../s-verses/${id}/index.js`).then((m) => {
+      const def = m.default;
+      if (!def || typeof def.create !== 'function') throw new Error(`s-verse "${id}" has no create()`);
+      if (def.id !== id) throw new Error(`s-verse in folder "${id}" says its id is "${def.id}"`);
+      loadFont(def.theme);
+      return def;
+    }));
+  }
+  return mods.get(id);
+}
+
+function planTrip() {
+  const ids = away().map((v) => v.id);
+  if (!ids.length) return [];
+  const chain = [];
+  if (run.trips === 0) {
+    // the very first trip: the grand prix, then two more
+    if (ids.includes('race')) chain.push('race');
+    run.deck = shuffle(ids.filter((id) => !chain.includes(id)));
+    while (chain.length < Math.min(3, ids.length) && run.deck.length) chain.push(run.deck.pop());
+    return chain;
+  }
+  const n = Math.min(ids.length, Math.random() < 0.55 ? 1 : 2);
+  while (chain.length < n) {
+    if (!run.deck.length) { run.deck = shuffle(ids.slice()); run.loop++; }
+    const id = run.deck.pop();
+    if (!chain.includes(id)) chain.push(id);
+  }
+  return chain;
+}
+
+/* ---------- warps ---------- */
+
+async function warp(from, def, label, swap) {
+  warping = true;
+  core.releaseStick();
+  audio.warp();
+  const [x, y] = from;
+  const R = Math.ceil(Math.hypot(innerWidth, innerHeight)) + 40;
+  el.warp.classList.add('on');
+  await anim(el.warp, [{ clipPath: `circle(0px at ${x}px ${y}px)` }, { clipPath: `circle(${R}px at ${x}px ${y}px)` }],
+    { duration: core.reduceMotion ? 150 : 560, easing: 'cubic-bezier(.55,0,.85,.35)' });
+  try { await swap(); } catch (err) { console.error(err); }
+  showCard(def, label);
+  await sleep(core.reduceMotion ? 900 : 1600);
+  el.card.classList.remove('show');
+  audio.arrive();
+  await anim(el.warp, [{ clipPath: `circle(${R}px at 50% 50%)` }, { clipPath: 'circle(0px at 50% 50%)' }],
+    { duration: core.reduceMotion ? 150 : 520, easing: 'cubic-bezier(.3,.6,.4,1)' });
+  el.warp.classList.remove('on');
+  warping = false;
+}
+
+function leaveCurrent() {
+  if (!cur || cur.inst === home) return;
+  audio.stopLoop();
+  try { if (cur.inst.dispose) cur.inst.dispose(); } catch (err) { console.error(err); }
+  core.disposeScene(cur.inst.scene);
+}
+
+function setCurrent(def, inst, ctx, visit) {
+  cur = { def, inst, ctx, visit };
+  applyTheme(def);
+  hud.status('');
+  if (inst.resize) inst.resize();
+}
+
+async function enterVerse(id, from) {
+  let def;
+  try { def = await loadVerse(id); } catch (err) { console.error(err); return goHome(from, true); }
+  leaving = true;
+  await warp(from, def, `s-verse #${numberOf(id)}`, () => {
+    leaveCurrent();
+    const { ctx, visit } = makeCtx(def);
+    let inst;
+    try { inst = def.create(ctx); } catch (err) { console.error(err); inst = null; }
+    if (!inst || !inst.scene || !inst.camera || typeof inst.update !== 'function') { cur = null; return; }
+    setCurrent(def, inst, ctx, visit);
+    run.visited.push(id);
+  });
+  leaving = false;
+  if (!cur) return goHome(from, true);
+  try { if (cur.inst.start) cur.inst.start(); } catch (err) { onCrash(err); }
+}
+
+function takePortal(x, y) {
+  run.chain = planTrip();
+  run.trips++;
+  const next = run.chain.shift();
+  if (!next) { home.begin(); return; }
+  enterVerse(next, [x, y]);
+}
+
+function finishVerse(def, result) {
+  if (!cur || cur.def !== def || leaving || warping) return;
+  leaving = true;
+  const center = [innerWidth / 2, innerHeight / 2];
+  if (DEV) { // testing one s-verse: just run it again
+    hud.popXY(result.success === false ? 'failed! again:' : `done! +${cur.visit.earned}`, center[0], center[1] * 0.6, 'big');
+    setTimeout(() => { leaving = false; enterVerse(DEV, center); }, 1100);
+    return;
+  }
+  const next = result.success !== false ? run.chain.shift() : null;
+  if (next) { leaving = false; enterVerse(next, center); } else goHome(center, result.success === false);
+}
+
+async function goHome(from, failed) {
+  leaving = true;
+  run.chain = [];
+  run.portalAt = run.homeCount + 3;
+  await warp(from, homeDef, failed ? 'kicked back to' : 'back to', () => {
+    leaveCurrent();
+    setCurrent(homeDef, home, homeCtx.ctx, homeCtx.visit);
+  });
+  leaving = false;
+  home.begin();
+}
+
+function onCrash(err) {
+  console.error('s-verse crashed:', err);
+  if (!cur || cur.inst === home) throw err;
+  finishVerse(cur.def, { success: false });
+}
+
+/* ---------- game over & retry ---------- */
+
+function credits() {
+  const ids = [...new Set(run.visited)];
+  if (!ids.length) return '';
+  const who = [...new Set(ids.map((id) => (manifest.find((v) => v.id === id) || {}).author).filter(Boolean))];
+  const n = ids.length;
+  let line = `visited ${n} ${n === 1 ? 's-verse' : 's-verses'}`;
+  if (who.length) line += ` by ${who.slice(0, 2).map((a) => `@${a}`).join(' & ')}${who.length > 2 ? ` +${who.length - 2}` : ''}`;
+  return line;
+}
+
+function showOver(reason) {
+  const s = run.score, isBest = s > run.best;
+  if (isBest) { run.best = s; store.set('s.best', s); }
+  const [, g, remark] = S.gradeFor(s);
+  lastGrade = g;
+  el.grade.textContent = g;
+  el.remark.textContent = remark;
+  el.reason.textContent = reason === 'slow' ? 'too slow. the S got bored.' : core.pick(['flew out!', 'yeeted.', 'wheeeee', 'launched!']);
+  el.tally.textContent = `you got ${s} ${s === 1 ? 's' : "s's"}`;
+  el.trip.textContent = credits();
+  el.bestline.textContent = isBest && s > 0 ? 'new best!' : `best: ${run.best}`;
+  el.again.textContent = core.coarse ? 'tap to try again' : 'click to try again';
+  el.over.classList.add('show');
+  hud.best(run.best);
+  overShown = true;
+  overAt = performance.now();
+  if (s >= 20) audio.tada(); else if (s < 7) audio.sad();
+}
+
+function resetRun() {
+  overShown = false;
+  el.over.classList.remove('show');
+  Object.assign(run, { score: 0, homeCount: 0, portalAt: 5, trips: 0, chain: [], deck: [], visited: [], loop: 0 });
+  hud.score(0);
+  home.reset();
+}
+
+el.share.addEventListener('pointerdown', (e) => e.stopPropagation());
+el.share.addEventListener('click', async (e) => {
+  e.stopPropagation();
+  const n = new Set(run.visited).size;
+  const text = `i got ${/^[AFS]/.test(lastGrade) ? 'an' : 'a'} ${lastGrade} on s.computer (${run.score} ${run.score === 1 ? 's' : "s's"}${n ? `, ${n} ${n === 1 ? 's-verse' : 's-verses'}` : ''})`;
+  const url = 'https://s.computer';
+  if (navigator.share) {
+    try { await navigator.share({ title: 's.computer', text, url }); return; } catch (err) { if (err && err.name === 'AbortError') return; }
+  }
+  try {
+    await navigator.clipboard.writeText(`${text} ${url}`);
+    el.share.textContent = 'copied!';
+    setTimeout(() => { el.share.textContent = 'share'; }, 1400);
+  } catch (_) { /* no clipboard either */ }
+});
+
+/* ---------- input routing ---------- */
+
+const START_KEYS = new Set(['Space', 'Enter']);
+input.onPress = (e) => {
+  if (warping || !cur) return;
+  if (overShown) { if (performance.now() - overAt > 450) resetRun(); return; }
+  if (cur.inst.onPress) try { cur.inst.onPress(e); } catch (err) { onCrash(err); }
+};
+input.onRelease = (e) => { if (!warping && cur && cur.inst.onRelease) try { cur.inst.onRelease(e); } catch (err) { onCrash(err); } };
+input.onKey = (e, dir, up) => {
+  if (!cur) return;
+  if (up) { if (cur.inst.onKey) try { cur.inst.onKey(e, dir, true); } catch (err) { onCrash(err); } return; }
+  if (warping) return;
+  if (overShown) { if ((dir || START_KEYS.has(e.code)) && performance.now() - overAt > 450) resetRun(); return; }
+  if (cur.inst === home) { if (dir || START_KEYS.has(e.code)) home.onPress(e); return; }
+  if (cur.inst.onKey) try { cur.inst.onKey(e, dir, false); } catch (err) { onCrash(err); }
+};
+
+function onResize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  input.R = Math.max(56, Math.min(96, Math.min(innerWidth, innerHeight) * 0.17));
+  if (home && home.resize) home.resize();
+  if (cur && cur.inst !== home && cur.inst.resize) try { cur.inst.resize(); } catch (err) { onCrash(err); }
+}
+window.addEventListener('resize', onResize);
+el.c.addEventListener('webglcontextlost', (e) => { e.preventDefault(); window.__sFallback('the S lost its graphics context. reload the page to get it back.'); });
+
+/* ---------- boot ---------- */
+
+let homeDef = null, homeCtx = null;
+async function boot() {
+  try {
+    const r = await fetch('./s-verses/manifest.json', { cache: 'no-cache' });
+    manifest = ((await r.json()).sverses || []).filter((v) => v && ID_OK.test(v.id));
+  } catch (err) { console.error('no manifest', err); manifest = [{ id: 'notebook', home: true }]; }
+  const homeEntry = manifest.find((v) => v.home) || { id: 'notebook', home: true };
+  if (!manifest.includes(homeEntry)) manifest.unshift(homeEntry);
+  homeDef = await loadVerse(homeEntry.id);
+  hud.best(run.best);
+  onResize();
+  homeCtx = makeCtx(homeDef);
+  home = homeDef.create(homeCtx.ctx);
+  if (DEV && DEV !== homeEntry.id) {
+    if (!manifest.some((v) => v.id === DEV)) manifest.push({ id: DEV }); // testing one that isn't listed yet
+    hud.score(0);
+    await enterVerse(DEV, [innerWidth / 2, innerHeight / 2]);
+  } else setCurrent(homeDef, home, homeCtx.ctx, homeCtx.visit);
+  // load the rest in the background so portals open instantly
+  setTimeout(() => away().forEach((v) => loadVerse(v.id).catch((err) => console.error(err))), 1500);
+}
+
+let last = performance.now();
+renderer.setAnimationLoop((now) => {
+  const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
+  last = now;
+  if (!cur) return;
+  if (cur.inst.showsStick) input.ring = !warping && cur.inst.showsStick();
+  else input.ring = !warping && cur.inst.ring !== false;
+  if (!input.ring && el.stick.classList.contains('on')) core.hideStick();
+  else if (input.ring && input.active && !el.stick.classList.contains('on')) core.showStick();
+  try { cur.inst.update(dt); } catch (err) { onCrash(err); return; }
+  renderer.render(cur.inst.scene, cur.inst.camera);
+  if (!window.__sReady) {
+    window.__sReady = true;
+    const fb = document.getElementById('fallback');
+    if (fb) fb.hidden = true;
+  }
+});
+
+boot().catch((err) => { console.error(err); window.__sFallback(); });
+
+// handy for poking at it from the console (and for the tests)
+window.__s = {
+  run,
+  get verse() { return cur ? cur.def.id : null; },
+  get warping() { return warping; },
+  get over() { return overShown; },
+  get home() { return home && home.debug ? home.debug() : null; },
+  get inst() { return cur ? cur.inst : null; },
+  get manifest() { return manifest; },
+  go: (id) => enterVerse(id, [innerWidth / 2, innerHeight / 2]),
+  _finish: (result) => { if (cur && !cur.def.home) cur.ctx.finish(result); },
+};
