@@ -1,4 +1,4 @@
-// s-verse #2: S Grand Prix. Three laps of a race track shaped like the Cool S, against three rival karts.
+// s-verse #2: S Grand Prix. Three laps around the outside of a giant Cool S, against three rival karts.
 // Point where you want to go: drag (the kart heads the way you drag) or hold the arrow keys.
 // Gold s's on the track are worth 1 each, and you get a bonus for where you finish.
 
@@ -13,7 +13,9 @@ export default {
 
 const LAPS = 3;
 const N = 420;                // samples around the track's centerline
-const HALF_W = 0.62;          // half the track's width
+const HALF_W = 0.6;           // half the track's width
+const OFF = HALF_W + 0.17;    // the track's centerline runs this far outside the S
+const S_TOP = 0.26;           // the S stands this tall in the middle of the circuit
 const KART_R = 0.17;          // karts bump each other like circles this big
 const TOP = 4.7;              // top speed, units per second
 const ACCEL = 5.2, COAST = 1.8, TURN = 4.4, GRIP = 7, SCRUB = 1.1;
@@ -29,6 +31,28 @@ const DRIVERS = [
 ];
 const SLOTS = [{ back: 8, lat: -0.25 }, { back: 8, lat: 0.25 }, { back: 18, lat: -0.25 }, { back: 18, lat: 0.25 }];
 
+// round each corner of a closed polygon with an arc of radius r; straight edges stay straight
+function fillet(poly, r, seg) {
+  const out = [], n = poly.length;
+  for (let i = 0; i < n; i++) {
+    const p0 = poly[(i - 1 + n) % n], p1 = poly[i], p2 = poly[(i + 1) % n];
+    let ax = p0[0] - p1[0], az = p0[1] - p1[1], bx = p2[0] - p1[0], bz = p2[1] - p1[1];
+    const la = Math.hypot(ax, az), lb = Math.hypot(bx, bz);
+    ax /= la; az /= la; bx /= lb; bz /= lb;
+    const ang = Math.acos(Math.max(-1, Math.min(1, ax * bx + az * bz)));
+    if (ang > Math.PI - 1e-3) { out.push(p1); continue; }
+    const t = Math.min(r / Math.tan(ang / 2), la * 0.45, lb * 0.45), rr = t * Math.tan(ang / 2);
+    let mx = ax + bx, mz = az + bz;
+    const ml = Math.hypot(mx, mz);
+    mx /= ml; mz /= ml;
+    const cd = rr / Math.sin(ang / 2), cx = p1[0] + mx * cd, cz = p1[1] + mz * cd;
+    const a0 = Math.atan2(p1[1] + az * t - cz, p1[0] + ax * t - cx), a1 = Math.atan2(p1[1] + bz * t - cz, p1[0] + bx * t - cx);
+    const da = Math.atan2(Math.sin(a1 - a0), Math.cos(a1 - a0));
+    for (let k = 0; k <= seg; k++) out.push([cx + Math.cos(a0 + (da * k) / seg) * rr, cz + Math.sin(a0 + (da * k) / seg) * rr]);
+  }
+  return out;
+}
+
 function createRace(ctx) {
   const { THREE, S, audio, hud } = ctx;
   const { clamp } = S;
@@ -36,10 +60,10 @@ function createRace(ctx) {
   const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
   const hard = Math.min(ctx.loop, 3); // each time around the multiverse the rivals get a bit quicker
 
-  /* ---------- the track: the Cool S's outline with its corners rounded off ---------- */
-  const T = S.resampleLoop(S.chaikinLoop(S.OUTLINE, 3), N);
+  /* ---------- the track: the Cool S's outline, pushed outward, with its corners rounded just enough to drive ---------- */
+  const T = S.resampleLoop(fillet(S.insetPolygon(S.OUTLINE, -OFF), 0.7, 10), N);
   let i0 = 0;
-  { let best = Infinity; T.pts.forEach((p, i) => { const d = Math.hypot(p.x + 1, p.z + 4); if (d < best) { best = d; i0 = i; } }); }
+  { let best = Infinity; T.pts.forEach((p, i) => { const d = Math.hypot(p.x + 1.38, p.z + 4.7); if (d < best) { best = d; i0 = i; } }); }
   const P = T.pts.slice(i0).concat(T.pts.slice(0, i0)); // lap starts halfway up the top-left diagonal
   const LEN = T.len, DS = LEN / N;
   P.forEach((p, i) => { p.s = i * DS; });
@@ -96,7 +120,8 @@ function createRace(ctx) {
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
     geo.setIndex(ind);
-    geo.computeVertexNormals();
+    // flat ground: every normal points straight up (where a tight bend folds the inside edge over, this keeps it seamless)
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(new Array(pos.length).fill(0).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
     return geo;
   }
   const asphalt = ctx.canvasTexture(128, 128, (g, w, h) => {
@@ -129,14 +154,34 @@ function createRace(ctx) {
   kerbs.receiveShadow = true;
   scene.add(kerbs);
 
-  // the rest of the Cool S, chalked onto the infield
-  const chalk = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.85 });
-  for (const w of [S.STROKES[1], S.STROKES[4], S.STROKES[6], S.STROKES[7]]) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w.len, 0.01, 0.1), chalk);
-    m.position.set((w.ax + w.bx) / 2, -0.005, (w.az + w.bz) / 2);
-    m.rotation.y = -Math.atan2(w.dz, w.dx);
-    scene.add(m);
+  // the classic Cool S itself, standing in the middle: the notebook's S, all 14 lines inked on
+  const paper = ctx.canvasTexture(128, 128, (g, w, h) => {
+    g.fillStyle = '#fcfdfa'; g.fillRect(0, 0, w, h);
+    g.fillStyle = 'rgba(118,163,222,0.5)'; g.fillRect(0, h - 4, w, 4);
+  });
+  paper.wrapS = paper.wrapT = THREE.RepeatWrapping;
+  paper.repeat.set(1 / 0.75, 1 / 0.75);
+  const sShape = new THREE.Shape();
+  S.OUTLINE.forEach(([x, z], i) => (i ? sShape.lineTo(x, -z) : sShape.moveTo(x, -z)));
+  const sGeo = new THREE.ExtrudeGeometry(sShape, { depth: S_TOP, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.04, bevelSegments: 2, curveSegments: 1 });
+  sGeo.rotateX(-Math.PI / 2);
+  sGeo.translate(0, -0.04, 0);
+  const bigS = new THREE.Mesh(sGeo, [new THREE.MeshStandardMaterial({ map: paper, roughness: 0.9 }), new THREE.MeshStandardMaterial({ color: 0xe9ece6, roughness: 0.95 })]);
+  bigS.castShadow = bigS.receiveShadow = true;
+  scene.add(bigS);
+  const ink = new THREE.MeshPhysicalMaterial({ color: 0x2335a8, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.12 });
+  const inkCyl = new THREE.InstancedMesh(new THREE.CylinderGeometry(S.INK_R, S.INK_R, 1, 14, 1, true), ink, S.STROKES.length);
+  const inkCap = new THREE.InstancedMesh(new THREE.SphereGeometry(S.INK_R, 14, 10), ink, S.STROKES.length * 2);
+  {
+    const d = new THREE.Vector3(), Q0 = new THREE.Quaternion(), y = S_TOP + S.INK_R * 0.6;
+    S.STROKES.forEach((w, i) => {
+      q.setFromUnitVectors(YUP, d.set(w.dx, 0, w.dz).normalize());
+      inkCyl.setMatrixAt(i, m4.compose(v3.set((w.ax + w.bx) / 2, y, (w.az + w.bz) / 2), q, sc.set(1, w.len, 1)));
+      inkCap.setMatrixAt(2 * i, m4.compose(v3.set(w.ax, y, w.az), Q0, sc.set(1, 1, 1)));
+      inkCap.setMatrixAt(2 * i + 1, m4.compose(v3.set(w.bx, y, w.bz), Q0, sc.set(1, 1, 1)));
+    });
   }
+  for (const m of [inkCyl, inkCap]) { m.castShadow = true; scene.add(m); }
 
   /* ---------- start line, gantry and its lights ---------- */
   const p0 = at(0), n0x = -p0.tz, n0z = p0.tx, yaw0 = Math.atan2(-n0z, n0x);
@@ -152,15 +197,15 @@ function createRace(ctx) {
   gantry.rotation.y = yaw0;
   scene.add(gantry);
   const metal = new THREE.MeshStandardMaterial({ color: 0xdfe3ea, roughness: 0.4, metalness: 0.6 });
-  const GW = HALF_W + 0.22;
-  for (const sx of [-GW, GW]) {
+  const POST_IN = HALF_W + 0.09, POST_OUT = -(HALF_W + 0.24), GW = (POST_IN - POST_OUT) / 2, GX = (POST_IN + POST_OUT) / 2;
+  for (const sx of [POST_OUT, POST_IN]) {
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1.05, 10), metal);
     post.position.set(sx, 0.525, 0);
     post.castShadow = true;
     gantry.add(post);
   }
   const beam = new THREE.Mesh(new THREE.BoxGeometry(GW * 2 + 0.12, 0.2, 0.1), new THREE.MeshStandardMaterial({ color: 0xd81b60, roughness: 0.5 }));
-  beam.position.y = 1.05;
+  beam.position.set(GX, 1.05, 0);
   beam.castShadow = true;
   gantry.add(beam);
   const drawSign = (g, w, h) => {
@@ -171,7 +216,7 @@ function createRace(ctx) {
   };
   const signTex = ctx.canvasTexture(320, 56, drawSign);
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(GW * 2 - 0.1, 0.18), new THREE.MeshBasicMaterial({ map: signTex }));
-  sign.position.set(0, 1.05, 0.052);
+  sign.position.set(GX, 1.05, 0.052);
   gantry.add(sign);
   if (document.fonts && document.fonts.load) {
     document.fonts.load('34px "Racing Sans One"').then(() => { drawSign(signTex.image.getContext('2d'), 320, 56); signTex.needsUpdate = true; }).catch(() => {});
@@ -179,7 +224,7 @@ function createRace(ctx) {
   const lamps = [0, 1, 2].map((k) => {
     const mat = new THREE.MeshStandardMaterial({ color: 0x2a0707, emissive: 0xff2020, emissiveIntensity: 0, roughness: 0.3 });
     const l = new THREE.Mesh(new THREE.SphereGeometry(0.07, 14, 10), mat);
-    l.position.set((k - 1) * 0.24, 1.21, 0);
+    l.position.set(GX + (k - 1) * 0.24, 1.21, 0);
     gantry.add(l);
     return mat;
   });
@@ -202,7 +247,7 @@ function createRace(ctx) {
   });
   chevrons.wrapS = THREE.RepeatWrapping;
   const padMat = new THREE.MeshStandardMaterial({ map: chevrons, emissive: 0xff8f00, emissiveMap: chevrons, emissiveIntensity: 0.55, roughness: 0.5, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-  const pads = [[1, -4, 0.22], [2, 1.9, -0.2], [-1, 4, -0.22]].map(([x, z, lat]) => {
+  const pads = [[1.38, -4.7, 0.22], [2.77, 1.95, -0.2], [-1.38, 4.7, -0.22]].map(([x, z, lat]) => {
     const i = nearest(x, z), p = at(i);
     const m = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.42).rotateX(-Math.PI / 2), padMat);
     m.position.set(p.x - p.tz * lat, 0.004, p.z + p.tx * lat);
@@ -214,7 +259,7 @@ function createRace(ctx) {
 
   const GOLD = new THREE.MeshStandardMaterial({ color: 0xffc21a, metalness: 1, roughness: 0.22, envMapIntensity: 1.5 });
   const mini = ctx.miniS(0.068, 0.06, 0.016);
-  const tokens = [[2, -2.1], [-2, 2.1]].map(([x, z]) => {
+  const tokens = [[2.77, -2.0], [-2.77, 2.0]].map(([x, z]) => {
     const mesh = new THREE.Mesh(mini.geo, GOLD);
     mesh.castShadow = true;
     scene.add(mesh);
@@ -222,7 +267,7 @@ function createRace(ctx) {
   });
   function placeTokens(lap) {
     tokens.forEach((t, k) => {
-      t.lat = ((lap + k) % 2 ? 1 : -1) * 0.3;
+      t.lat = ((lap + k) % 2 ? 1 : -1) * 0.38; // off the racing line: steer for them
       const p = at(t.i);
       t.x = p.x - p.tz * t.lat; t.z = p.z + p.tx * t.lat;
       t.taken = false; t.pop = 0;
@@ -240,7 +285,7 @@ function createRace(ctx) {
   const standMat = new THREE.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 0.8 });
   const roofMat = new THREE.MeshStandardMaterial({ color: 0xd81b60, roughness: 0.6 });
   const fans = [];
-  for (const [x, z, face] of [[3.35, -2, -1], [-3.35, 2, 1]]) {
+  for (const [x, z, face] of [[4.0, -2, -1], [-4.0, 2, 1]]) {
     const grp = new THREE.Group();
     grp.position.set(x, 0, z);
     grp.rotation.y = face > 0 ? Math.PI : 0; // local -x points at the track
@@ -275,10 +320,10 @@ function createRace(ctx) {
 
   const treeSpots = [];
   for (let tries = 0; tries < 900 && treeSpots.length < 70; tries++) {
-    const x = (rnd() - 0.5) * 13, z = (rnd() - 0.5) * 18;
-    if (S.pointInS(x, z)) continue;
+    const x = (rnd() - 0.5) * 15, z = (rnd() - 0.5) * 21;
+    if (S.pointInS(x, z) || S.edgeDistance(x, z) < 0.5) continue;
     if (distToTrack(x, z) < HALF_W + 0.75) continue;
-    if (Math.abs(Math.abs(x) - 3.5) < 0.75 && Math.abs(z - (x > 0 ? -2 : 2)) < 1.4) continue; // the grandstands
+    if (Math.abs(Math.abs(x) - 4.2) < 0.8 && Math.abs(z - (x > 0 ? -2 : 2)) < 1.4) continue; // the grandstands
     if (treeSpots.some(([a, b]) => Math.hypot(a - x, b - z) < 0.55)) continue;
     treeSpots.push([x, z, 0.75 + rnd() * 0.6]);
   }
@@ -293,7 +338,14 @@ function createRace(ctx) {
   scene.add(leaves, trunks);
 
   const tyreSpots = [];
-  for (const [cx, cz, dz] of [[0, -5, -1], [0, 5, 1]]) for (let k = -3; k <= 3; k++) tyreSpots.push([cx + k * 0.2, cz + dz * (HALF_W + 0.55 + Math.abs(k) * -0.06)]);
+  for (const sg of [-1, 1]) {
+    let tip = P[0];
+    for (const p of P) if (p.z * sg > tip.z * sg) tip = p;
+    for (let k = -3; k <= 3; k++) {
+      const out = HALF_W + 0.5 - Math.abs(k) * 0.05; // the outside is the -normal side
+      tyreSpots.push([tip.x + tip.tz * out + tip.tx * k * 0.21, tip.z - tip.tx * out + tip.tz * k * 0.21]);
+    }
+  }
   const tyres = new THREE.InstancedMesh(new THREE.TorusGeometry(0.085, 0.04, 8, 14).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x212121, roughness: 0.85 }), tyreSpots.length * 2);
   tyreSpots.forEach(([x, z], k) => {
     for (let h = 0; h < 2; h++) tyres.setMatrixAt(k * 2 + h, m4.compose(v3.set(x, 0.04 + h * 0.075, z), q.identity(), sc.set(1, 1, 1)));
@@ -339,7 +391,7 @@ function createRace(ctx) {
   const fx = ctx.makeParticles(scene, 360, 0);
 
   /* ---------- camera ---------- */
-  const FIT_PTS = ctx.sFitPoints(0.95, [0, 0.5], 0);
+  const FIT_PTS = ctx.sFitPoints(1.7, [0, 0.5], 0);
   let fit = null, blend = 0, shake = 0;
   const camT = new THREE.Vector3(), follow = { x: player.x, z: player.z }, _sh = new THREE.Vector3();
   function resize() {
@@ -393,10 +445,36 @@ function createRace(ctx) {
     k.vz += (cz * k.v - k.vz) * gr;
     k.x += k.vx * dt;
     k.z += k.vz * dt;
-    if (Math.abs(k.x) > 6) { k.x = Math.sign(k.x) * 6; k.vx = 0; }
-    if (Math.abs(k.z) > 8.6) { k.z = Math.sign(k.z) * 8.6; k.vz = 0; }
+    if (Math.abs(k.x) > 6.6) { k.x = Math.sign(k.x) * 6.6; k.vx = 0; }
+    if (Math.abs(k.z) > 9) { k.z = Math.sign(k.z) * 9; k.vz = 0; }
+    keepOffS(k);
     k.boost = Math.max(0, k.boost - dt);
     locate(k);
+  }
+
+  // the S is solid: karts bump off it like a wall
+  const wallP = [0, 0, 0];
+  function keepOffS(k) {
+    const inside = S.pointInS(k.x, k.z);
+    let bd = Infinity, px = 0, pz = 0;
+    const O = S.OUTLINE;
+    for (let i = 0; i < O.length; i++) {
+      const [ax, az] = O[i], [bx, bz] = O[(i + 1) % O.length], dx = bx - ax, dz = bz - az;
+      S.nearestOnSeg(k.x, k.z, ax, az, dx, dz, dx * dx + dz * dz, wallP);
+      const d = Math.hypot(k.x - wallP[0], k.z - wallP[1]);
+      if (d < bd) { bd = d; px = wallP[0]; pz = wallP[1]; }
+    }
+    if (!inside && bd >= KART_R) return;
+    let nx = k.x - px, nz = k.z - pz;
+    const l = Math.hypot(nx, nz) || 1;
+    nx = (inside ? -nx : nx) / l; nz = (inside ? -nz : nz) / l;
+    k.x = px + nx * KART_R; k.z = pz + nz * KART_R;
+    const vn = k.vx * nx + k.vz * nz;
+    if (vn < 0) {
+      k.vx -= 1.35 * vn * nx; k.vz -= 1.35 * vn * nz;
+      k.v = Math.max(0, k.vx * Math.cos(k.h) + k.vz * Math.sin(k.h));
+      if (k.player && -vn > 1.2 && k.bumpT <= 0) { audio.bonk(-vn * 1.6); k.bumpT = 0.4; k.googly.kick(2); shake = Math.max(shake, 0.04); }
+    }
   }
 
   function aiControl(k) {
@@ -411,10 +489,10 @@ function createRace(ctx) {
     const wantH = Math.atan2(p.z + p.tx * k.lane - k.z, p.x - p.tz * k.lane - k.x);
     let bend = 0;
     for (let d = 3; d <= 33; d += 3) bend = Math.max(bend, Math.abs(curv[(k.i + d) % N]));
-    let throttle = clamp(1.04 - Math.max(0, bend - 0.3) * 0.36, 0.5, 1);
+    let throttle = clamp(1.04 - Math.max(0, bend - 1.1) * 0.3, 0.75, 1);
     if (!k.player && state === 'race' && !player.done) {
       const gap = k.prog - player.prog; // rubber band: keep it close
-      throttle *= gap > 2.5 ? 0.9 : gap < -3 ? 1.07 : 1;
+      throttle *= gap > 2.5 ? 0.9 : gap < -2 ? 1.1 : 1;
     }
     return { wantH, throttle };
   }
@@ -554,7 +632,7 @@ function createRace(ctx) {
     }
     if (racing) bumpKarts();
     // gold s's: yours to grab
-    if (racing && !player.done) for (const t of tokens) if (!t.taken && Math.hypot(player.x - t.x, player.z - t.z) < 0.34) onToken(t);
+    if (racing && !player.done) for (const t of tokens) if (!t.taken && Math.hypot(player.x - t.x, player.z - t.z) < 0.3) onToken(t);
   }
 
   function update(dt) {
@@ -628,7 +706,7 @@ function createRace(ctx) {
     fx.update(dt);
     if (engine) {
       const v = Math.abs(player.v);
-      engine.set(48 + v * 22 + (player.boost > 0 ? 30 : 0), document.hidden ? 0 : 0.03 + player.throttle * 0.03, 380 + v * 260);
+      engine.set(40 + v * 13 + (player.boost > 0 ? 14 : 0), document.hidden ? 0 : 0.012 + player.throttle * 0.016, 260 + v * 70);
     }
     audio.roll(state === 'race' && player.grass ? Math.abs(player.v) * 2.5 : 0);
     updateCamera(dt);
@@ -642,7 +720,7 @@ function createRace(ctx) {
     scene, camera, update, resize,
     start() {
       setState('count');
-      engine = audio.drone({ type: 'sawtooth', freq: 48, cutoff: 380 });
+      engine = audio.drone({ type: 'triangle', freq: 40, cutoff: 260 });
       hud.status(`lap 1/${LAPS}`);
     },
     showsStick: () => state === 'race' && !player.done,

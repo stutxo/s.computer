@@ -226,9 +226,9 @@ function createGolf(ctx) {
   const putter = new THREE.Group();
   {
     const metal = new THREE.MeshStandardMaterial({ color: 0xcfd8dc, metalness: 0.9, roughness: 0.25 });
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.11, 0.46), metal);
-    head.position.y = 0.06;
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 1.5, 8), new THREE.MeshStandardMaterial({ color: 0x263238, roughness: 0.4 }));
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.14, 0.58), metal);
+    head.position.y = 0.075;
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.5, 8), new THREE.MeshStandardMaterial({ color: 0xe53935, roughness: 0.4 }));
     shaft.position.set(-0.32, 0.75, 0);
     shaft.rotation.z = 0.44;
     putter.add(head, shaft);
@@ -237,8 +237,8 @@ function createGolf(ctx) {
   putter.visible = false;
   scene.add(putter);
   const DOTS = 14;
-  const dotMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthWrite: false });
-  const dots = new THREE.InstancedMesh(new THREE.SphereGeometry(0.055, 10, 8), dotMat, DOTS);
+  const dotMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, depthWrite: false });
+  const dots = new THREE.InstancedMesh(new THREE.SphereGeometry(0.08, 12, 8), dotMat, DOTS);
   dots.frustumCulled = false;
   dots.visible = false;
   scene.add(dots);
@@ -406,7 +406,7 @@ function createGolf(ctx) {
 
   /* ---------- per frame ---------- */
   const dotM = new THREE.Matrix4(), dotP = new THREE.Vector3(), dotS = new THREE.Vector3(), dotQ = new THREE.Quaternion();
-  const C_LO = new THREE.Color(0x7cff8a), C_HI = new THREE.Color(0xff3d6e);
+  const C_LO = new THREE.Color(0xfff176), C_HI = new THREE.Color(0xff1744);
   let t = 0;
   function update(dt) {
     t += dt;
