@@ -1,0 +1,46 @@
+# Comments on every pull request with links to play it, so anyone can try a new s-verse on their phone before merging.
+# It runs on pull_request_target so it can comment on pull requests from forks. It never checks out or runs
+# the pull request's code: it only reads which files changed and writes (or updates) one comment.
+name: play link
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  link:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: comment a link to play this pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          [ -n "$HEAD_REPO" ] || exit 0 # the fork was deleted
+          page="https://raw.githack.com/$HEAD_REPO/$SHA/index.html"
+          ids=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename' \
+            | sed -nE 's#^s-verses/([a-z0-9][a-z0-9-]{0,40})/.*#\1#p' | sort -u)
+          {
+            echo '<!-- s.computer play link -->'
+            echo "**▶ Try this pull request** (as of ${SHA:0:7})"
+            echo
+            [ -n "$ids" ] || echo "- [play s.computer with these changes]($page)"
+            for id in $ids; do
+              if [ "$id" = notebook ]; then echo "- **the notebook**: [play it]($page)"
+              else echo "- **$id**: [play it over and over]($page?verse=$id&replay), or [as one stop on a trip]($page?verse=$id)"; fi
+            done
+            echo
+            echo "These links run this pull request's code in your browser, on raw.githack.com rather than s.computer. They move to the newest commit whenever one is pushed."
+          } > body.md
+          old=$(gh api --paginate "repos/$REPO/issues/$PR/comments" \
+            --jq '.[] | select(.user.type == "Bot" and (.body | startswith("<!-- s.computer play link -->"))) | .id' | head -n 1)
+          if [ -n "$old" ]; then gh api -X PATCH "repos/$REPO/issues/comments/$old" -F body=@body.md > /dev/null
+          else gh api -X POST "repos/$REPO/issues/$PR/comments" -F body=@body.md > /dev/null; fi

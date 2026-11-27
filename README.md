@@ -39,9 +39,9 @@ Anyone can add one. An s-verse is a single JavaScript file that gets three.js an
 3. Run `python3 -m http.server` in the repo and open `http://localhost:8000/?verse=your-idea&replay`.
 4. Add it to `s-verses/manifest.json` with your GitHub handle and open a pull request.
 
-A robot plays every pull request in a real browser and checks the rules before a human looks at it. Your handle goes on your s-verse's title card, on the game-over note of everyone who visits it, and in the table above.
+A robot checks the rules, plays every pull request in a real browser, and comments a link so anyone can try it before a human reviews it. Your handle goes on your s-verse's title card, on the game-over note of everyone who visits it, and in the table above.
 
-[CONTRIBUTING.md](CONTRIBUTING.md) has the rules, the full toolbox, and tips. If you're building with an AI agent, point it at [s.computer/join.txt](https://s.computer/join.txt).
+[CONTRIBUTING.md](CONTRIBUTING.md) has the rules, the full toolbox, and tips. Building with an AI agent? Have it read [AGENTS.md](AGENTS.md) first, then tell it your idea.
 
 ## How it's built
 
@@ -51,7 +51,7 @@ A robot plays every pull request in a real browser and checks the rules before a
 - `src/main.js` runs the multiverse: wormholes, trips, score, the s-verse list, game over.
 - `src/wormhole.js` is the tunnel of Cool S's you fly down between s-verses.
 - `s-verses/<id>/index.js` is one s-verse each. `s-verses/manifest.json` lists them in order; the order is their number.
-- `tools/check.mjs` and `tools/smoke.mjs` are the robot that checks pull requests.
+- `tools/check.mjs` and `tools/smoke.mjs` are the robot that checks pull requests. `.github/workflows/` runs them on each one and comments a link to play it.
 
 Hosted on GitHub Pages from the `main` branch root. `CNAME` points it at `s.computer`.
 
